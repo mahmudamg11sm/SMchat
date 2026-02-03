@@ -47,6 +47,27 @@ def chat():
         conn.close()
 
     return render_template("index.html", messages=messages, user=user)
+    from flask import jsonify
+
+@app.route("/api/messages")
+def api_messages():
+    user = request.args.get("user", "")
+    if not user:
+        return jsonify([])
+
+    conn = get_db()
+    c = conn.cursor()
+    c.execute(
+        "SELECT sender, receiver, message FROM messages WHERE sender=? OR receiver=? ORDER BY rowid ASC",
+        (user, user)
+    )
+    rows = c.fetchall()
+    conn.close()
+
+    return jsonify([
+        {"sender": s, "receiver": r, "message": m}
+        for s, r, m in rows
+    ])
 
 # ---------- MAIN ----------
 if __name__ == "__main__":
