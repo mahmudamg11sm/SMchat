@@ -1,75 +1,51 @@
-import os
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request
+from flask_socketio import SocketIO, emit
 import sqlite3
 
 app = Flask(__name__)
+app.config["SECRET_KEY"] = "secret"
+socketio = SocketIO(app, cors_allowed_origins="*")
 
-# ---------- DATABASE HELPER ----------
-def get_db():
-    return sqlite3.connect("chat.db")
-
-# ---------- INIT DATABASE ----------
-conn = get_db()
-c = conn.cursor()
-c.execute("""
-CREATE TABLE IF NOT EXISTS messages (
-    sender TEXT,
-    receiver TEXT,
-    message TEXT
-)
-""")
-conn.commit()
-conn.close()
-
-# ---------- ROUTES ----------
-@app.route("/", methods=["GET", "POST"])
-def chat():
-    if request.method == "POST":
-        sender = request.form.get("sender")
-        receiver = request.form.get("receiver")
-        message = request.form.get("message")
-        if sender and receiver and message:
-            conn = get_db()
-            c = conn.cursor()
-            c.execute("INSERT INTO messages VALUES (?,?,?)", (sender, receiver, message))
-            conn.commit()
-            conn.close()
-        return redirect(f"/?user={sender}")
-
-    user = request.args.get("user", "")
-    messages = []
-    if user:
-        conn = get_db()
-        c = conn.cursor()
-        # Show only messages where user is sender or receiver
-        c.execute("SELECT sender, receiver, message FROM messages WHERE sender=? OR receiver=?", (user, user))
-        messages = c.fetchall()
-        conn.close()
-
-    return render_template("index.html", messages=messages, user=user)
-    from flask import jsonify
-
-@app.route("/api/messages")
-def api_messages():
-    user = request.args.get("user", "")
-    if not user:
-        return jsonify([])
-
-    conn = get_db()
+# ================= DATABASE =================
+def init_db():
+    conn = sqlite3.connect("chat.db")
     c = conn.cursor()
-    c.execute(
-        "SELECT sender, receiver, message FROM messages WHERE sender=? OR receiver=? ORDER BY rowid ASC",
-        (user, user)
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS messages (
+        sender TEXT,
+        receiver TEXT,
+        message TEXT
     )
-    rows = c.fetchall()
+    """)
+    conn.commit()
     conn.close()
 
-    return jsonify([
-        {"sender": s, "receiver": r, "message": m}
-        for s, r, m in rows
-    ])
+init_db()
 
-# ---------- MAIN ----------
+# ================= ROUTES =================
+@app.route("/")
+def index():
+    username = request.args.get("user", "Mahmudsm1")
+    return render_template("chat.html", username=username)
+
+# ================= SOCKET EVENTS =================
+@socketio.on("send_message")
+def handle_message(data):
+    sender = data["sender"]
+    receiver = data["receiver"]
+    message = data["message"]
+
+    conn = sqlite3.connect("chat.db")
+    c = conn.cursor()
+    c.execute(
+        "INSERT INTO messages VALUES (?,?,?)",
+        (sender, receiver, message)
+    )
+    conn.commit()
+    conn.close()
+
+    emit("receive_message", data, broadcast=True)
+
+# ================= MAIN =================
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    socketio.run(app, host="0.0.0.0", port=5000)
