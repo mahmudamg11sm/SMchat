@@ -1,99 +1,53 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>SM Chat</title>
-    <link rel="stylesheet" href="/static/style.css">
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<title>Chat</title>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
+
 <body>
+<h3>Welcome, {{ username }}</h3>
+<p><b>App language:</b> English</p>
+<p><b>Messages:</b> Any language allowed</p>
 
-<div class="chat-container">
-    <div class="header">
-        👤 {{ username }}
-    </div>
+<input id="receiver" placeholder="Send to (username)">
+<br><br>
 
-    <div class="top-controls">
-        <input id="receiver" placeholder="DM username">
-        <input id="group" placeholder="Group name">
-        <button onclick="joinGroup()">Join Group</button>
-    </div>
+<div id="chat" style="border:1px solid #000;height:200px;overflow:auto;"></div>
 
-    <div class="messages" id="chat"></div>
+<input id="msg" placeholder="Type your message">
+<button onclick="send()">Send</button>
 
-    <div class="input-box">
-        <input id="msg" placeholder="Rubuta sako...">
-        <button onclick="send()">➤</button>
-    </div>
-</div>
+<br><br>
+<a href="/logout">Logout</a>
 
 <script>
-const socket = io();
-const username = "{{ username }}";
+var socket = io();
+var username = "{{ username }}";
 
-function send() {
-    const msg = document.getElementById("msg").value;
-    const receiver = document.getElementById("receiver").value;
-    const group = document.getElementById("group").value;
+function send(){
+    let msg = document.getElementById("msg").value;
+    let receiver = document.getElementById("receiver").value;
 
-    if (!msg) return;
-
-    if (group) {
-        socket.emit("send_group_message", {
-            sender: username,
-            group: group,
-            message: msg
-        });
-    } else if (receiver) {
-        socket.emit("send_message", {
-            sender: username,
-            receiver: receiver,
-            message: msg
-        });
-    }
+    socket.emit("send_message", {
+        sender: username,
+        receiver: receiver,
+        message: msg
+    });
 
     document.getElementById("msg").value = "";
 }
 
-function joinGroup() {
-    const group = document.getElementById("group").value;
-    if (!group) return;
-
-    socket.emit("join_group", {
-        username: username,
-        group: group
-    });
-}
-
-socket.on("receive_message", function(data) {
-    if (data.sender === username || data.receiver === username) {
-        addMsg(`${data.sender}: ${data.message}`, data.sender === username);
+socket.on("receive_message", function(data){
+    if (
+        data.sender === username ||
+        data.receiver === username
+    ){
+        let box = document.getElementById("chat");
+        box.innerHTML += "<p><b>" + data.sender + ":</b> " + data.message + "</p>";
+        box.scrollTop = box.scrollHeight;
     }
 });
-
-socket.on("receive_group_message", function(data) {
-    addMsg(`[${data.group}] ${data.sender}: ${data.message}`,
-           data.sender === username);
-});
-
-socket.on("group_notice", function(data) {
-    addSystemMsg(data.msg);
-});
-
-function addMsg(text, me) {
-    const div = document.createElement("div");
-    div.className = me ? "me" : "them";
-    div.innerText = text;
-    chat.appendChild(div);
-    chat.scrollTop = chat.scrollHeight;
-}
-
-function addSystemMsg(text) {
-    const div = document.createElement("div");
-    div.className = "system";
-    div.innerText = text;
-    chat.appendChild(div);
-}
 </script>
-
 </body>
-    </html>
+</html>
