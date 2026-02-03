@@ -1,21 +1,27 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Chat App</title>
+    <title>DM Chat App</title>
 </head>
 <body>
-    <h2>Simple Chat</h2>
+    <h2>DM Chat App</h2>
 
     <form method="post">
-        <input name="sender" placeholder="Username" required>
+        <input name="sender" placeholder="Your username" required>
+        <input name="receiver" placeholder="Receiver username" required>
         <input name="message" placeholder="Message" required>
         <button type="submit">Send</button>
     </form>
 
     <hr>
 
-    {% for sender, message in messages %}
-        <p><b>{{ sender }}:</b> {{ message }}</p>
-    {% endfor %}
+    {% if user %}
+        <h3>Messages for {{ user }}</h3>
+        {% for sender, receiver, message in messages %}
+            <p><b>{{ sender }}</b> → <b>{{ receiver }}</b>: {{ message }}</p>
+        {% endfor %}
+    {% else %}
+        <p>Enter your username to see your messages.</p>
+    {% endif %}
 </body>
 </html>
