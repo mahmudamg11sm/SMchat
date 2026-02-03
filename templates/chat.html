@@ -1,53 +1,50 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Chat</title>
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <title>SM Chat</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
-
 <body>
-<h3>Welcome, {{ username }}</h3>
-<p><b>App language:</b> English</p>
-<p><b>Messages:</b> Any language allowed</p>
 
-<input id="receiver" placeholder="Send to (username)">
-<br><br>
+<div class="container">
+    <div class="header">
+        Welcome, {{ username }}
+    </div>
 
-<div id="chat" style="border:1px solid #000;height:200px;overflow:auto;"></div>
+    <div class="chat-box" id="chatBox"></div>
 
-<input id="msg" placeholder="Type your message">
-<button onclick="send()">Send</button>
-
-<br><br>
-<a href="/logout">Logout</a>
+    <div class="input-box">
+        <input id="msg" placeholder="Type message..." autocomplete="off">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+</div>
 
 <script>
-var socket = io();
-var username = "{{ username }}";
+const socket = io();
+const username = "{{ username }}";
 
-function send(){
-    let msg = document.getElementById("msg").value;
-    let receiver = document.getElementById("receiver").value;
+socket.on("message", data => {
+    const box = document.getElementById("chatBox");
+    const div = document.createElement("div");
 
-    socket.emit("send_message", {
-        sender: username,
-        receiver: receiver,
-        message: msg
-    });
+    div.classList.add("message");
+    div.classList.add(data.user === username ? "me" : "other");
 
-    document.getElementById("msg").value = "";
-}
+    div.innerText = data.user + ": " + data.msg;
+    box.appendChild(div);
 
-socket.on("receive_message", function(data){
-    if (
-        data.sender === username ||
-        data.receiver === username
-    ){
-        let box = document.getElementById("chat");
-        box.innerHTML += "<p><b>" + data.sender + ":</b> " + data.message + "</p>";
-        box.scrollTop = box.scrollHeight;
-    }
+    box.scrollTop = box.scrollHeight;
 });
+
+function sendMessage() {
+    const input = document.getElementById("msg");
+    if (input.value.trim() !== "") {
+        socket.emit("send_message", input.value);
+        input.value = "";
+    }
+}
 </script>
+
 </body>
 </html>
