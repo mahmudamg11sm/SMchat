@@ -6,7 +6,6 @@ app = Flask(__name__)
 
 # ---------- DATABASE HELPER ----------
 def get_db():
-    """Return a connection to the SQLite database"""
     return sqlite3.connect("chat.db")
 
 # ---------- INIT DATABASE ----------
@@ -15,6 +14,7 @@ c = conn.cursor()
 c.execute("""
 CREATE TABLE IF NOT EXISTS messages (
     sender TEXT,
+    receiver TEXT,
     message TEXT
 )
 """)
@@ -26,26 +26,29 @@ conn.close()
 def chat():
     if request.method == "POST":
         sender = request.form.get("sender")
+        receiver = request.form.get("receiver")
         message = request.form.get("message")
-        if sender and message:
+        if sender and receiver and message:
             conn = get_db()
             c = conn.cursor()
-            c.execute("INSERT INTO messages VALUES (?,?)", (sender, message))
+            c.execute("INSERT INTO messages VALUES (?,?,?)", (sender, receiver, message))
             conn.commit()
             conn.close()
-        return redirect("/")
+        return redirect(f"/?user={sender}")
 
-    # Load messages
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT sender, message FROM messages")
-    messages = c.fetchall()
-    conn.close()
-    
-    return render_template("index.html", messages=messages)
+    user = request.args.get("user", "")
+    messages = []
+    if user:
+        conn = get_db()
+        c = conn.cursor()
+        # Show only messages where user is sender or receiver
+        c.execute("SELECT sender, receiver, message FROM messages WHERE sender=? OR receiver=?", (user, user))
+        messages = c.fetchall()
+        conn.close()
+
+    return render_template("index.html", messages=messages, user=user)
 
 # ---------- MAIN ----------
 if __name__ == "__main__":
-    # Render will set the PORT environment variable
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
