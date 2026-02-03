@@ -9,15 +9,20 @@
 
 <div class="chat-container">
     <div class="header">
-        Logged in as <b>{{ username }}</b>
+        👤 {{ username }}
+    </div>
+
+    <div class="top-controls">
+        <input id="receiver" placeholder="DM username">
+        <input id="group" placeholder="Group name">
+        <button onclick="joinGroup()">Join Group</button>
     </div>
 
     <div class="messages" id="chat"></div>
 
     <div class="input-box">
-        <input id="receiver" placeholder="Username ɗin da zaka rubuta wa">
         <input id="msg" placeholder="Rubuta sako...">
-        <button onclick="sendMessage()">➤</button>
+        <button onclick="send()">➤</button>
     </div>
 </div>
 
@@ -25,32 +30,70 @@
 const socket = io();
 const username = "{{ username }}";
 
-function sendMessage() {
+function send() {
     const msg = document.getElementById("msg").value;
     const receiver = document.getElementById("receiver").value;
+    const group = document.getElementById("group").value;
 
-    if (!msg || !receiver) return;
+    if (!msg) return;
 
-    socket.emit("send_message", {
-        sender: username,
-        receiver: receiver,
-        message: msg
-    });
+    if (group) {
+        socket.emit("send_group_message", {
+            sender: username,
+            group: group,
+            message: msg
+        });
+    } else if (receiver) {
+        socket.emit("send_message", {
+            sender: username,
+            receiver: receiver,
+            message: msg
+        });
+    }
 
     document.getElementById("msg").value = "";
 }
 
+function joinGroup() {
+    const group = document.getElementById("group").value;
+    if (!group) return;
+
+    socket.emit("join_group", {
+        username: username,
+        group: group
+    });
+}
+
 socket.on("receive_message", function(data) {
     if (data.sender === username || data.receiver === username) {
-        const chat = document.getElementById("chat");
-        const div = document.createElement("div");
-        div.className = data.sender === username ? "me" : "them";
-        div.innerText = data.sender + ": " + data.message;
-        chat.appendChild(div);
-        chat.scrollTop = chat.scrollHeight;
+        addMsg(`${data.sender}: ${data.message}`, data.sender === username);
     }
 });
+
+socket.on("receive_group_message", function(data) {
+    addMsg(`[${data.group}] ${data.sender}: ${data.message}`,
+           data.sender === username);
+});
+
+socket.on("group_notice", function(data) {
+    addSystemMsg(data.msg);
+});
+
+function addMsg(text, me) {
+    const div = document.createElement("div");
+    div.className = me ? "me" : "them";
+    div.innerText = text;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+function addSystemMsg(text) {
+    const div = document.createElement("div");
+    div.className = "system";
+    div.innerText = text;
+    chat.appendChild(div);
+}
 </script>
 
 </body>
-</html>
+    </html>
