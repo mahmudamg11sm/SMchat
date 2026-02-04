@@ -1,94 +1,40 @@
 body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #1c1c1c;
-    color: #000;
-}
-
-/* HEADER */
-.header {
-    background: linear-gradient(135deg, #d4af37, #b8962e);
+    background: #0d0d0d;
+    font-family: Arial;
     color: white;
-    padding: 15px;
-    font-size: 18px;
-    font-weight: bold;
 }
 
-/* CHAT AREA */
 .chat-container {
-    position: relative;
-    height: calc(100vh - 130px);
-    overflow-y: auto;
+    width: 90%;
+    max-width: 400px;
+    margin: auto;
+    margin-top: 40px;
+    background: #111;
     padding: 15px;
+    border-radius: 10px;
 }
 
-.chat-background {
-    position: absolute;
-    inset: 0;
-    background: url("sm_logo.png") center no-repeat;
-    background-size: 280px;
-    opacity: 0.08;
-    pointer-events: none;
+.welcome {
+    text-align: center;
+    color: gold;
 }
 
 #messages {
-    position: relative;
-    z-index: 2;
+    height: 300px;
+    overflow-y: auto;
+    border: 1px solid gold;
+    padding: 5px;
+    margin-bottom: 10px;
 }
 
-.message {
-    padding: 10px;
-    border-radius: 10px;
-    margin: 6px 0;
-    max-width: 70%;
+input {
+    width: 70%;
+    padding: 6px;
 }
 
-.message.me {
-    background: #d4af37;
-    color: #000;
-    margin-left: auto;
-}
-
-.message.other {
-    background: #f2f2f2;
-}
-
-/* INPUT */
-.input-area {
-    background: #111;
-    padding: 10px;
-}
-
-.input-area form {
-    display: flex;
-}
-
-.input-area input {
-    flex: 1;
-    padding: 10px;
-    border-radius: 6px;
+button {
+    width: 25%;
+    background: gold;
     border: none;
+    padding: 6px;
 }
-
-.input-area button {
-    margin-left: 10px;
-    background: #d4af37;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 6px;
-    font-weight: bold;
-}
-
-/* PLUS BUTTON */
-.plus-btn {
-    position: fixed;
-    bottom: 90px;
-    right: 20px;
-    width: 55px;
-    height: 55px;
-    border-radius: 50%;
-    font-size: 30px;
-    border: none;
-    background: linear-gradient(135deg, #d4af37, #b8962e);
-    color: #000;
-    }
