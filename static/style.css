@@ -1,28 +1,27 @@
 body{
-  background:#0f0f0f;
-  color:#f5d37a;
-  font-family:Arial;
-  padding:20px;
+  background:#0e0e0e;
+  color:#f5f5f5;
+  font-family:sans-serif;
+}
+input,button{
+  padding:8px;
+  margin:4px;
 }
 button{
   background:#c9a227;
   border:none;
-  padding:8px 14px;
-  color:black;
-  font-weight:bold;
-}
-input{
-  padding:8px;
-  margin:5px 0;
-}
-#users div{
-  cursor:pointer;
-  padding:6px;
-  border-bottom:1px solid #333;
 }
 #messages{
-  min-height:200px;
+  height:300px;
+  overflow:auto;
   border:1px solid #333;
-  margin:10px 0;
-  padding:10px;
+  margin:8px 0;
+}
+#lists{
+  display:flex;
+  gap:20px;
+}
+#users div,#rooms div{
+  cursor:pointer;
+  padding:4px;
 }
