@@ -1,40 +1,40 @@
 body {
-    background: #0d0d0d;
+    background: #111;
     font-family: Arial;
-    color: white;
+    color: #fff;
 }
 
-.chat-container {
-    width: 90%;
-    max-width: 400px;
+.container {
+    max-width: 500px;
     margin: auto;
     margin-top: 40px;
-    background: #111;
+    background: #1c1c1c;
     padding: 15px;
     border-radius: 10px;
 }
 
-.welcome {
+h2 {
     text-align: center;
     color: gold;
 }
 
-#messages {
+#chat {
     height: 300px;
     overflow-y: auto;
-    border: 1px solid gold;
-    padding: 5px;
+    border: 1px solid #333;
+    padding: 10px;
     margin-bottom: 10px;
 }
 
 input {
-    width: 70%;
-    padding: 6px;
+    width: 75%;
+    padding: 8px;
 }
 
 button {
-    width: 25%;
+    width: 20%;
+    padding: 8px;
     background: gold;
     border: none;
-    padding: 6px;
+    cursor: pointer;
 }
