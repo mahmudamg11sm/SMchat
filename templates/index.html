@@ -1,22 +1,34 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>SMchat DM</title>
+  <title>SMchat</title>
   <link rel="stylesheet" href="/static/style.css">
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 <body>
+
 <div id="login">
-  <h2>Shiga SMchat</h2>
+  <h2>SMchat</h2>
   <input id="username" placeholder="Username">
   <button onclick="join()">Shiga</button>
 </div>
 
 <div id="chat" style="display:none;">
-  <div id="users"></div>
+  <h3 id="title">General</h3>
 
-  <h3 id="current"></h3>
+  <div id="lists">
+    <div>
+      <h4>Users</h4>
+      <div id="users"></div>
+    </div>
+    <div>
+      <h4>Groups</h4>
+      <input id="newRoom" placeholder="New group">
+      <button onclick="createRoom()">+</button>
+      <div id="rooms"></div>
+    </div>
+  </div>
+
   <div id="messages"></div>
 
   <input id="msg" placeholder="Rubuta saƙo...">
@@ -26,48 +38,78 @@
 <script>
 const socket = io();
 let myname = "";
-let currentUser = "";
+let current = {type:"room", name:"General"};
 
 function join(){
   myname = document.getElementById("username").value;
-  if(!myname) return;
-  socket.emit("join", {username: myname});
+  socket.emit("join",{username:myname});
   document.getElementById("login").style.display="none";
   document.getElementById("chat").style.display="block";
+  socket.emit("join_room",{room:"General"});
 }
 
 socket.on("users_list", users=>{
-  let box = document.getElementById("users");
-  box.innerHTML = "<h4>Users</h4>";
-  users.forEach(u=>{
-    if(u !== myname){
-      box.innerHTML += `<div onclick="selectUser('${u}')">${u}</div>`;
+  let u = document.getElementById("users");
+  u.innerHTML="";
+  users.forEach(x=>{
+    if(x!==myname){
+      u.innerHTML += `<div onclick="dm('${x}')">${x}</div>`;
     }
   });
 });
 
-function selectUser(u){
-  currentUser = u;
-  document.getElementById("current").innerText = "DM da: " + u;
-  document.getElementById("messages").innerHTML = "";
+socket.on("rooms_list", rooms=>{
+  let r = document.getElementById("rooms");
+  r.innerHTML="";
+  rooms.forEach(x=>{
+    r.innerHTML += `<div onclick="joinRoom('${x}')">${x}</div>`;
+  });
+});
+
+function dm(u){
+  current={type:"dm",name:u};
+  document.getElementById("title").innerText="DM: "+u;
+  document.getElementById("messages").innerHTML="";
+}
+
+function joinRoom(r){
+  current={type:"room",name:r};
+  socket.emit("join_room",{room:r});
+  document.getElementById("title").innerText=r;
+  document.getElementById("messages").innerHTML="";
+}
+
+function createRoom(){
+  let r=document.getElementById("newRoom").value;
+  socket.emit("create_room",{room:r});
 }
 
 function send(){
-  let text = document.getElementById("msg").value;
-  if(!text || !currentUser) return;
-  socket.emit("dm", {
-    sender: myname,
-    receiver: currentUser,
-    message: text
-  });
-  document.getElementById("messages").innerHTML += `<p><b>Ni:</b> ${text}</p>`;
+  let m=document.getElementById("msg").value;
+  if(current.type==="dm"){
+    socket.emit("private_message",{to:current.name,msg:m});
+  }else{
+    socket.emit("room_message",{room:current.name,msg:m});
+  }
   document.getElementById("msg").value="";
 }
 
-socket.on("dm_message", data=>{
-  document.getElementById("messages").innerHTML +=
-    `<p><b>${data.sender}:</b> ${data.message}</p>`;
+socket.on("private_message",d=>{
+  add(`${d.from}: ${d.msg}`);
 });
+
+socket.on("room_message",d=>{
+  if(d.room===current.name){
+    add(`${d.from}: ${d.msg}`);
+  }
+});
+
+function add(t){
+  let m=document.getElementById("messages");
+  m.innerHTML += `<div>${t}</div>`;
+  m.scrollTop=m.scrollHeight;
+}
 </script>
+
 </body>
     </html>
