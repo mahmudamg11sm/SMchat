@@ -1,37 +1,43 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
     <title>SM Chat</title>
     <link rel="stylesheet" href="/static/style.css">
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 <body>
 
-<div class="chat-container">
-    <h2 class="welcome">Welcome to SM Chat</h2>
+<div class="container">
+    <h2>Welcome to SM Chat</h2>
 
-    <div id="messages"></div>
+    <div id="chat"></div>
 
-    <input id="msg" placeholder="Type message..." autocomplete="off">
-    <button onclick="sendMsg()">Send</button>
+    <input id="msg" placeholder="Type a message..." autocomplete="off">
+    <button onclick="sendMessage()">Send</button>
 </div>
 
 <script>
     const socket = io();
+    let username = "";
 
-    socket.on('message', function(msg){
-        let div = document.createElement("div");
-        div.textContent = msg;
-        document.getElementById("messages").appendChild(div);
+    while (!username) {
+        username = prompt("Enter your username:");
+    }
+
+    socket.on("message", function(data) {
+        const chat = document.getElementById("chat");
+        chat.innerHTML += "<p>" + data + "</p>";
+        chat.scrollTop = chat.scrollHeight;
     });
 
-    function sendMsg(){
-        let input = document.getElementById("msg");
-        socket.send(input.value);
-        input.value = "";
+    function sendMessage() {
+        const input = document.getElementById("msg");
+        if (input.value.trim() !== "") {
+            socket.send(username + ": " + input.value);
+            input.value = "";
+        }
     }
 </script>
 
 </body>
-  </html>
+</html>
