@@ -1,43 +1,73 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>SM Chat</title>
-    <link rel="stylesheet" href="/static/style.css">
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <meta charset="utf-8">
+  <title>SMchat DM</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 <body>
+<div id="login">
+  <h2>Shiga SMchat</h2>
+  <input id="username" placeholder="Username">
+  <button onclick="join()">Shiga</button>
+</div>
 
-<div class="container">
-    <h2>Welcome to SM Chat</h2>
+<div id="chat" style="display:none;">
+  <div id="users"></div>
 
-    <div id="chat"></div>
+  <h3 id="current"></h3>
+  <div id="messages"></div>
 
-    <input id="msg" placeholder="Type a message..." autocomplete="off">
-    <button onclick="sendMessage()">Send</button>
+  <input id="msg" placeholder="Rubuta saƙo...">
+  <button onclick="send()">Aika</button>
 </div>
 
 <script>
-    const socket = io();
-    let username = "";
+const socket = io();
+let myname = "";
+let currentUser = "";
 
-    while (!username) {
-        username = prompt("Enter your username:");
+function join(){
+  myname = document.getElementById("username").value;
+  if(!myname) return;
+  socket.emit("join", {username: myname});
+  document.getElementById("login").style.display="none";
+  document.getElementById("chat").style.display="block";
+}
+
+socket.on("users_list", users=>{
+  let box = document.getElementById("users");
+  box.innerHTML = "<h4>Users</h4>";
+  users.forEach(u=>{
+    if(u !== myname){
+      box.innerHTML += `<div onclick="selectUser('${u}')">${u}</div>`;
     }
+  });
+});
 
-    socket.on("message", function(data) {
-        const chat = document.getElementById("chat");
-        chat.innerHTML += "<p>" + data + "</p>";
-        chat.scrollTop = chat.scrollHeight;
-    });
+function selectUser(u){
+  currentUser = u;
+  document.getElementById("current").innerText = "DM da: " + u;
+  document.getElementById("messages").innerHTML = "";
+}
 
-    function sendMessage() {
-        const input = document.getElementById("msg");
-        if (input.value.trim() !== "") {
-            socket.send(username + ": " + input.value);
-            input.value = "";
-        }
-    }
+function send(){
+  let text = document.getElementById("msg").value;
+  if(!text || !currentUser) return;
+  socket.emit("dm", {
+    sender: myname,
+    receiver: currentUser,
+    message: text
+  });
+  document.getElementById("messages").innerHTML += `<p><b>Ni:</b> ${text}</p>`;
+  document.getElementById("msg").value="";
+}
+
+socket.on("dm_message", data=>{
+  document.getElementById("messages").innerHTML +=
+    `<p><b>${data.sender}:</b> ${data.message}</p>`;
+});
 </script>
-
 </body>
-</html>
+    </html>
