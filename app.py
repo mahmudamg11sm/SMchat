@@ -1,23 +1,20 @@
 import os
 from flask import Flask, render_template, request
+from flask_socketio import SocketIO, send
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'smchat-secret'
 
-messages = []
+socketio = SocketIO(app, cors_allowed_origins="*")
 
-@app.route("/", methods=["GET", "POST"])
-def chat():
-    username = "Mahmudsm1"
+@app.route('/')
+def index():
+    return render_template('index.html')
 
-    if request.method == "POST":
-        text = request.form.get("message")
-        messages.append({
-            "sender": username,
-            "text": text
-        })
+@socketio.on('message')
+def handle_message(msg):
+    send(msg, broadcast=True)
 
-    return render_template("chat.html", username=username, messages=messages)
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    socketio.run(app, host='0.0.0.0', port=port)
