@@ -1,25 +1,20 @@
 import os
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, join_room, leave_room, emit
+from database import get_db, init_db
 
-# ========================
-# App Configuration
-# ========================
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "smchat-secret")
 
-socketio = SocketIO(
-    app,
-    cors_allowed_origins="*",
-    async_mode="eventlet"
-)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
+
+# in-memory users (sid -> username)
+USERS = {}
 
 # ========================
-# In-memory storage
-# (Za mu mayar da DB daga baya)
+# Init Database
 # ========================
-USERS = {}          # sid -> username
-ROOMS = {"General"} # default room
+init_db()
 
 # ========================
 # Routes
@@ -34,19 +29,23 @@ def index():
 
 @socketio.on("connect")
 def on_connect():
-    emit("rooms_list", list(ROOMS))
+    db = get_db()
+    rooms = [r["name"] for r in db.execute("SELECT name FROM rooms")]
+    emit("rooms_list", rooms)
 
 @socketio.on("join")
 def on_join(data):
     username = data.get("username", "").strip()
-
     if not username:
         emit("error", {"msg": "Username ya zama dole"})
         return
 
-    if username in USERS.values():
-        emit("error", {"msg": "Username yana amfani"})
-        return
+    db = get_db()
+    try:
+        db.execute("INSERT INTO users (username) VALUES (?)", (username,))
+        db.commit()
+    except:
+        pass
 
     USERS[request.sid] = username
 
@@ -57,15 +56,22 @@ def on_join(data):
 
 @socketio.on("private_message")
 def private_message(data):
+    sender = USERS.get(request.sid)
     to_user = data.get("to")
     msg = data.get("msg", "").strip()
-    sender = USERS.get(request.sid)
 
     if not msg or not to_user:
         return
 
-    for sid, username in USERS.items():
-        if username == to_user:
+    db = get_db()
+    db.execute(
+        "INSERT INTO messages (sender, receiver, message) VALUES (?, ?, ?)",
+        (sender, to_user, msg)
+    )
+    db.commit()
+
+    for sid, user in USERS.items():
+        if user == to_user:
             emit("private_message", {
                 "from": sender,
                 "msg": msg
@@ -75,26 +81,22 @@ def private_message(data):
 @socketio.on("create_room")
 def create_room_event(data):
     room = data.get("room", "").strip()
-
     if not room:
-        emit("error", {"msg": "Room name ba zai zama babu komai ba"})
         return
 
-    if room in ROOMS:
-        emit("error", {"msg": "Room tuni yana akwai"})
+    db = get_db()
+    try:
+        db.execute("INSERT INTO rooms (name) VALUES (?)", (room,))
+        db.commit()
+    except:
+        emit("error", {"msg": "Room yana nan tuni"})
         return
 
-    ROOMS.add(room)
-    emit("rooms_list", list(ROOMS), broadcast=True)
+    emit("rooms_list", [r["name"] for r in db.execute("SELECT name FROM rooms")], broadcast=True)
 
 @socketio.on("join_room")
 def join_room_event(data):
     room = data.get("room")
-
-    if room not in ROOMS:
-        emit("error", {"msg": "Room baya wanzuwa"})
-        return
-
     join_room(room)
 
     emit("room_message", {
@@ -103,36 +105,31 @@ def join_room_event(data):
         "msg": f"{USERS.get(request.sid)} ya shiga group"
     }, room=room)
 
-@socketio.on("leave_room")
-def leave_room_event(data):
-    room = data.get("room")
-
-    leave_room(room)
-
-    emit("room_message", {
-        "room": room,
-        "from": "System",
-        "msg": f"{USERS.get(request.sid)} ya fita daga group"
-    }, room=room)
-
 @socketio.on("room_message")
 def room_message(data):
     room = data.get("room")
     msg = data.get("msg", "").strip()
+    sender = USERS.get(request.sid)
 
     if not msg:
         return
 
+    db = get_db()
+    db.execute(
+        "INSERT INTO messages (sender, room, message) VALUES (?, ?, ?)",
+        (sender, room, msg)
+    )
+    db.commit()
+
     emit("room_message", {
         "room": room,
-        "from": USERS.get(request.sid),
+        "from": sender,
         "msg": msg
     }, room=room)
 
 @socketio.on("disconnect")
 def on_disconnect():
     username = USERS.pop(request.sid, None)
-
     if username:
         emit("users_list", list(USERS.values()), broadcast=True)
         emit("system_message", {
@@ -140,7 +137,7 @@ def on_disconnect():
         }, broadcast=True)
 
 # ========================
-# Run App
+# Run
 # ========================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
