@@ -1,232 +1,257 @@
 /* =========================
+   VARIABLES
+========================= */
+:root {
+  --gold: #d4af37;
+  --dark: #0b0b0b;
+  --dark2: #111;
+  --text: #ffffff;
+  --online: #00ff88;
+  --offline: #777;
+}
+
+/* =========================
    GLOBAL
 ========================= */
-:root{
-  --gold:#d4af37;
-  --dark:#0b0b0b;
-  --dark2:#111;
-  --text:#ffffff;
+* {
+  box-sizing: border-box;
 }
 
-*{
-  box-sizing:border-box;
-}
-
-body{
-  margin:0;
-  padding:0;
+body {
+  margin: 0;
+  padding: 0;
   font-family: "Segoe UI", Arial, sans-serif;
-  background:var(--dark);
-  color:var(--text);
-  font-size:18px;              /* ⬅️ nan ne girman ya karu */
+  background: var(--dark);
+  color: var(--text);
+  font-size: 18px;
 }
 
 /* =========================
-   INPUTS & BUTTONS
+   BACKGROUND LOGO
 ========================= */
-input{
-  font-size:18px;
-  padding:12px 14px;
-  border-radius:10px;
-  border:none;
-  outline:none;
-}
-
-button{
-  font-size:18px;
-  padding:12px 18px;
-  border-radius:10px;
-  border:none;
-  background:var(--gold);
-  color:#000;
-  font-weight:600;
-  cursor:pointer;
-}
-
-button:hover{
-  opacity:0.9;
+.bg-logo {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 220px;
+  height: 220px;
+  background: url("../img/sm_bg_logo.png") center/contain no-repeat;
+  opacity: 0.08;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* =========================
-   LOGIN
+   APP CONTAINER
 ========================= */
-#login{
-  height:100vh;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
-  gap:15px;
-}
-
-#login h2{
-  font-size:32px;
-  color:var(--gold);
+.app {
+  display: flex;
+  height: 100vh;
+  position: relative;
+  z-index: 1;
 }
 
 /* =========================
-   CHAT LAYOUT
+   SIDEBAR
 ========================= */
-#chat{
-  height:100vh;
-  display:flex;
-  flex-direction:column;
+.sidebar {
+  width: 280px;
+  background: #111;
+  display: flex;
+  flex-direction: column;
+  padding: 15px;
+  gap: 10px;
 }
 
-header{
-  background:var(--dark2);
-  padding:18px;
-  font-size:22px;
-  font-weight:700;
-  text-align:center;
-  color:var(--gold);
+.sidebar .logo {
+  font-size: 28px;
+  color: var(--gold);
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.sidebar input[type="text"] {
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  outline: none;
+  font-size: 16px;
+}
+
+#users div {
+  padding: 10px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  background: #161616;
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--offline);
+  transition: 0.2s;
+}
+
+#users div:hover {
+  background: #1f1f1f;
 }
 
 /* =========================
-   USERS & ROOMS
+   CHAT AREA
 ========================= */
-#lists{
-  display:flex;
-  gap:20px;
-  padding:15px;
-  background:#0f0f0f;
+.chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
 }
 
-#lists > div{
-  flex:1;
+.chat-header {
+  padding: 15px;
+  background: var(--dark2);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gold);
 }
 
-#lists b{
-  font-size:20px;
-  display:block;
-  margin-bottom:10px;
-  color:var(--gold);
+#messages {
+  flex: 1;
+  padding: 15px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-#users div,
-#rooms div{
-  padding:10px;
-  margin-bottom:6px;
-  border-radius:8px;
-  background:#161616;
-  cursor:pointer;
-  font-size:18px;
-}
-
-#users div:hover,
-#rooms div:hover{
-  background:#1f1f1f;
-}
-
-/* =========================
-   MESSAGES
-========================= */
-#messages{
-  flex:1;
-  padding:15px;
-  overflow-y:auto;
-  font-size:18px;
-}
-
-.msg{
-  margin-bottom:10px;
-  padding:8px 12px;
-  background:#151515;
-  border-radius:10px;
-  max-width:85%;
+.message {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #151515;
+  word-wrap: break-word;
 }
 
 /* =========================
    INPUT BAR
 ========================= */
-.input-bar{
-  display:flex;
-  gap:10px;
-  padding:15px;
-  background:var(--dark2);
+.chat-input {
+  display: flex;
+  gap: 10px;
+  padding: 15px;
+  background: var(--dark2);
 }
 
-.input-bar input{
-  flex:1;
+.chat-input input {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  outline: none;
+  font-size: 16px;
+}
+
+.chat-input button {
+  padding: 12px 18px;
+  border-radius: 10px;
+  border: none;
+  background: var(--gold);
+  color: #000;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.chat-input button:hover {
+  opacity: 0.9;
 }
 
 /* =========================
    FLOATING ACTION BUTTON
 ========================= */
-.fab{
-  position:fixed;
-  bottom:25px;
-  right:25px;
-  width:70px;                 /* ⬅️ girma */
-  height:70px;
-  border-radius:50%;
-  font-size:36px;
-  background:var(--gold);
-  color:#000;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  box-shadow:0 0 20px rgba(212,175,55,0.7);
-  z-index:1000;
+.fab {
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  font-size: 36px;
+  background: var(--gold);
+  color: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.7);
+  z-index: 1001;
+  cursor: pointer;
 }
 
 /* =========================
-   SEARCH PANEL
+   MODAL (SEARCH PANEL)
 ========================= */
-#searchPanel{
-  position:fixed;
-  bottom:115px;
-  right:25px;
-  width:300px;                /* ⬅️ ya fi girma */
-  background:#111;
-  padding:18px;
-  border-radius:14px;
-  display:none;
-  box-shadow:0 0 25px rgba(0,0,0,0.9);
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0,0,0,0.75);
+  z-index: 1002;
 }
 
-#searchPanel h4{
-  margin:0 0 12px;
-  font-size:20px;
-  color:var(--gold);
+.modal-content {
+  width: 320px;
+  background: #111;
+  padding: 20px;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-#searchResults div{
-  padding:10px;
-  margin-bottom:6px;
-  border-radius:8px;
-  background:#1a1a1a;
-  cursor:pointer;
+.modal-content h3 {
+  margin: 0;
+  font-size: 20px;
+  color: var(--gold);
 }
 
-#searchResults div:hover{
-  background:#222;
+.modal-content input {
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  outline: none;
+  font-size: 16px;
+}
+
+.modal-content button {
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  background: var(--gold);
+  font-weight: 600;
+  cursor: pointer;
 }
 
 /* =========================
-   RESPONSIVE (Mobile)
+   RESPONSIVE
 ========================= */
-@media (max-width: 768px){
-  body{
-    font-size:20px;        /* ⬅️ mobile ma babba */
+@media (max-width: 768px) {
+  body {
+    font-size: 20px;
   }
 
-  #lists{
-    flex-direction:column;
+  .app {
+    flex-direction: column;
   }
 
-  header{
-    font-size:24px;
-  }
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+    overflow-x: auto;
   }
 
-/* =========================
-   CHAT BACKGROUND LOGO
-========================= */
-#messages{
-  position:relative;
-  background:
-    linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.85)),
-    url("/static/sm_bg_logo.png") center no-repeat;
-  background-size:220px;
-   }
+  #users div {
+    flex: 1;
+  }
+}
