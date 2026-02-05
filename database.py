@@ -13,10 +13,26 @@ c.execute("""
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   username TEXT UNIQUE,
-  phone TEXT,
   bio TEXT,
-  photo TEXT,
-  online INTEGER DEFAULT 0
+  profile_pic TEXT
+)
+""")
+
+# CHANNELS
+c.execute("""
+CREATE TABLE IF NOT EXISTS channels (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT UNIQUE,
+  admin TEXT
+)
+""")
+
+# MEMBERS
+c.execute("""
+CREATE TABLE IF NOT EXISTS members (
+  user TEXT,
+  channel TEXT,
+  PRIMARY KEY(user, channel)
 )
 """)
 
@@ -25,20 +41,11 @@ c.execute("""
 CREATE TABLE IF NOT EXISTS messages (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   sender TEXT,
-  receiver TEXT,
-  room TEXT,
+  channel TEXT,
   text TEXT,
   type TEXT,
-  time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
-""")
-
-# LIKES
-c.execute("""
-CREATE TABLE IF NOT EXISTS likes (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  msg_id INTEGER,
-  username TEXT
+  media_url TEXT,
+  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
 )
 """)
 
@@ -46,20 +53,19 @@ CREATE TABLE IF NOT EXISTS likes (
 c.execute("""
 CREATE TABLE IF NOT EXISTS comments (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  msg_id INTEGER,
-  username TEXT,
-  text TEXT
+  message_id INTEGER,
+  commenter TEXT,
+  text TEXT,
+  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
 )
 """)
 
-# GROUPS / CHANNELS
+# LIKES
 c.execute("""
-CREATE TABLE IF NOT EXISTS rooms (
+CREATE TABLE IF NOT EXISTS likes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT UNIQUE,
-  admin TEXT,
-  type TEXT,
-  comments_locked INTEGER DEFAULT 0
+  message_id INTEGER,
+  user TEXT
 )
 """)
 
