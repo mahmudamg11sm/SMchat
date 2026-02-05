@@ -1,267 +1,91 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>SMchat</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <link rel="stylesheet" href="/static/style.css">
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <!-- STYLE -->
+  <link rel="stylesheet" href="/css/style.css">
 
-  <style>
-    :root{
-      --gold:#d4af37;
-      --dark:#111;
-    }
-
-    body{
-      margin:0;
-      font-family:Arial, sans-serif;
-      background:#000;
-      color:#fff;
-    }
-
-    button{
-      background:var(--gold);
-      border:none;
-      padding:10px 14px;
-      border-radius:6px;
-      cursor:pointer;
-      font-weight:bold;
-    }
-
-    input{
-      padding:10px;
-      border-radius:6px;
-      border:none;
-      outline:none;
-    }
-
-    #login{
-      height:100vh;
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-      align-items:center;
-      gap:10px;
-    }
-
-    #chat{
-      display:flex;
-      height:100vh;
-      flex-direction:column;
-    }
-
-    header{
-      background:#111;
-      padding:12px;
-      text-align:center;
-      font-weight:bold;
-      color:var(--gold);
-    }
-
-    #lists{
-      display:flex;
-      gap:10px;
-      padding:10px;
-      background:#0c0c0c;
-    }
-
-    #users div, #rooms div{
-      padding:6px;
-      cursor:pointer;
-      border-bottom:1px solid #222;
-    }
-
-    #messages{
-      flex:1;
-      overflow-y:auto;
-      padding:10px;
-    }
-
-    .msg{
-      margin-bottom:6px;
-    }
-
-    .input-bar{
-      display:flex;
-      gap:8px;
-      padding:10px;
-      background:#111;
-    }
-
-    /* Floating + button */
-    .fab{
-      position:fixed;
-      bottom:20px;
-      right:20px;
-      width:60px;
-      height:60px;
-      border-radius:50%;
-      font-size:30px;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      box-shadow:0 0 15px rgba(212,175,55,.6);
-    }
-
-    /* Search panel */
-    #searchPanel{
-      position:fixed;
-      bottom:100px;
-      right:20px;
-      background:#111;
-      padding:15px;
-      border-radius:10px;
-      width:260px;
-      display:none;
-      box-shadow:0 0 20px rgba(0,0,0,.8);
-    }
-
-    #searchPanel h4{
-      margin:0 0 10px;
-      color:var(--gold);
-    }
-
-    #searchResults div{
-      padding:6px;
-      cursor:pointer;
-      border-bottom:1px solid #222;
-    }
-  </style>
+  <!-- ICON -->
+  <link rel="icon" href="/img/logo.png">
 </head>
 <body>
 
-<!-- LOGIN -->
-<div id="login">
-  <h2 style="color:var(--gold)">SMchat</h2>
-  <input id="username" placeholder="Username">
-  <button onclick="join()">Shiga</button>
-</div>
+  <!-- BACKGROUND LOGO -->
+  <div class="bg-logo"></div>
 
-<!-- CHAT -->
-<div id="chat" style="display:none;">
-  <header id="title">General</header>
+  <!-- APP CONTAINER -->
+  <div class="app">
 
-  <div id="lists">
-    <div>
-      <b style="color:var(--gold)">Users</b>
-      <div id="users"></div>
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <h2 class="logo">SMchat</h2>
+
+      <!-- SEARCH -->
+      <input
+        type="text"
+        id="search"
+        placeholder="Search username / mobile"
+      >
+
+      <!-- USERS -->
+      <div id="users">
+        <!-- users list from server -->
+      </div>
     </div>
-    <div>
-      <b style="color:var(--gold)">Groups</b>
-      <div id="rooms"></div>
+
+    <!-- CHAT AREA -->
+    <div class="chat">
+
+      <!-- HEADER -->
+      <div class="chat-header">
+        <h3 id="title">Chat</h3>
+      </div>
+
+      <!-- MESSAGES -->
+      <div id="messages"></div>
+
+      <!-- INPUT -->
+      <div class="chat-input">
+        <input
+          type="text"
+          id="msg"
+          placeholder="Rubuta saƙo..."
+          autocomplete="off"
+        >
+        <button id="send">➤</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FLOATING PLUS BUTTON -->
+  <button class="fab" id="addBtn">+</button>
+
+  <!-- SEARCH MODAL -->
+  <div class="modal" id="searchModal">
+    <div class="modal-content">
+      <h3>Search Contact</h3>
+      <input type="text" placeholder="Username / Mobile">
+      <button id="closeModal">Close</button>
     </div>
   </div>
 
-  <div id="messages"></div>
+  <!-- SOCKET -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/chat.js"></script>
 
-  <div class="input-bar">
-    <input id="msg" placeholder="Rubuta saƙo..." style="flex:1">
-    <button onclick="send()">Aika</button>
-  </div>
-</div>
+  <!-- UI SCRIPT -->
+  <script>
+    const addBtn = document.getElementById("addBtn");
+    const modal = document.getElementById("searchModal");
+    const closeModal = document.getElementById("closeModal");
 
-<!-- Floating + -->
-<button class="fab" onclick="toggleSearch()">+</button>
-
-<!-- Search Panel -->
-<div id="searchPanel">
-  <h4>Search User</h4>
-  <input id="searchInput" placeholder="Username">
-  <div id="searchResults"></div>
-</div>
-
-<script>
-const socket = io();
-let myname="";
-let current={type:"room",name:"General"};
-let allUsers=[];
-
-function join(){
-  myname=document.getElementById("username").value;
-  socket.emit("join",{username:myname});
-  document.getElementById("login").style.display="none";
-  document.getElementById("chat").style.display="flex";
-  socket.emit("join_room",{room:"General"});
-}
-
-socket.on("users_list",users=>{
-  allUsers=users;
-  let u=document.getElementById("users");
-  u.innerHTML="";
-  users.forEach(x=>{
-    if(x!==myname){
-      u.innerHTML+=`<div onclick="dm('${x}')">${x}</div>`;
-    }
-  });
-});
-
-socket.on("rooms_list",rooms=>{
-  let r=document.getElementById("rooms");
-  r.innerHTML="";
-  rooms.forEach(x=>{
-    r.innerHTML+=`<div onclick="joinRoom('${x}')">${x}</div>`;
-  });
-});
-
-function dm(u){
-  current={type:"dm",name:u};
-  document.getElementById("title").innerText="DM: "+u;
-  document.getElementById("messages").innerHTML="";
-}
-
-function joinRoom(r){
-  current={type:"room",name:r};
-  socket.emit("join_room",{room:r});
-  document.getElementById("title").innerText=r;
-  document.getElementById("messages").innerHTML="";
-}
-
-function send(){
-  let m=document.getElementById("msg").value;
-  if(!m) return;
-
-  if(current.type==="dm"){
-    socket.emit("private_message",{to:current.name,msg:m});
-  }else{
-    socket.emit("room_message",{room:current.name,msg:m});
-  }
-  document.getElementById("msg").value="";
-}
-
-socket.on("private_message",d=>{
-  add(`${d.from}: ${d.msg}`);
-});
-
-socket.on("room_message",d=>{
-  if(d.room===current.name){
-    add(`${d.from}: ${d.msg}`);
-  }
-});
-
-function add(t){
-  let m=document.getElementById("messages");
-  m.innerHTML+=`<div class="msg">${t}</div>`;
-  m.scrollTop=m.scrollHeight;
-}
-
-/* Search */
-function toggleSearch(){
-  let p=document.getElementById("searchPanel");
-  p.style.display = p.style.display==="block" ? "none" : "block";
-}
-
-document.getElementById("searchInput").addEventListener("input",function(){
-  let v=this.value.toLowerCase();
-  let r=document.getElementById("searchResults");
-  r.innerHTML="";
-  allUsers.filter(u=>u.toLowerCase().includes(v) && u!==myname)
-          .forEach(u=>{
-            r.innerHTML+=`<div onclick="dm('${u}');toggleSearch()">${u}</div>`;
-          });
-});
-</script>
+    addBtn.onclick = ()=> modal.style.display = "flex";
+    closeModal.onclick = ()=> modal.style.display = "none";
+  </script>
 
 </body>
   </html>
