@@ -1,317 +1,233 @@
-/* =========================
-   VARIABLES
-========================= */
-:root {
-  --gold: #d4af37;
-  --dark: #0b0b0b;
-  --dark2: #111;
-  --text: #ffffff;
-  --online: #00ff88;
-  --offline: #777;
-}
-
-/* =========================
+/* =====================
    GLOBAL
-========================= */
+===================== */
 * {
+  margin: 0;
+  padding: 0;
   box-sizing: border-box;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
 }
 
 body {
-  margin: 0;
-  padding: 0;
-  font-family: "Segoe UI", Arial, sans-serif;
-  background: var(--dark);
-  color: var(--text);
-  font-size: 18px;
-}
-
-/* =========================
-   BACKGROUND LOGO
-========================= */
-.bg-logo {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  width: 220px;
-  height: 220px;
-  background: url("../img/sm_bg_logo.png") center/contain no-repeat;
-  opacity: 0.08;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* =========================
-   APP CONTAINER
-========================= */
-.app {
-  display: flex;
+  background: #0e0e0e;
+  color: #fff;
   height: 100vh;
-  position: relative;
-  z-index: 1;
+  overflow: hidden;
 }
 
-/* =========================
-   SIDEBAR
-========================= */
-.sidebar {
-  width: 280px;
-  background: #111;
+/* =====================
+   BACKGROUND LOGO
+===================== */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: url("/static/img/sm_bg_logo.png") center no-repeat;
+  background-size: 60%;
+  opacity: 0.06;
+  z-index: -1;
+}
+
+/* =====================
+   LOGIN / HOME
+===================== */
+#login {
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  padding: 15px;
-  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
 }
 
-.sidebar .logo {
-  font-size: 28px;
-  color: var(--gold);
-  text-align: center;
-  margin-bottom: 20px;
+#login h2 {
+  font-size: 32px;
+  color: #d4af37;
 }
 
-.sidebar input[type="text"] {
-  padding: 12px;
+#login input {
+  width: 80%;
+  max-width: 320px;
+  padding: 14px;
   border-radius: 10px;
   border: none;
-  outline: none;
   font-size: 16px;
 }
 
-#users div {
-  padding: 10px;
-  margin-bottom: 6px;
-  border-radius: 8px;
-  background: #161616;
+#login button {
+  width: 80%;
+  max-width: 320px;
+  padding: 14px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #d4af37, #ffd700);
+  font-size: 17px;
+  font-weight: bold;
   cursor: pointer;
-  font-size: 18px;
-  color: var(--offline);
-  transition: 0.2s;
 }
 
-#users div:hover {
-  background: #1f1f1f;
-}
-
-/* =========================
-   CHAT AREA
-========================= */
-.chat {
-  flex: 1;
+/* =====================
+   CHAT CONTAINER
+===================== */
+#chat {
   display: flex;
   flex-direction: column;
-  background: transparent;
+  height: 100vh;
 }
 
-.chat-header {
-  padding: 15px;
-  background: var(--dark2);
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--gold);
+/* =====================
+   HEADER
+===================== */
+.header {
+  height: 60px;
+  background: #111;
+  border-bottom: 1px solid #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: #d4af37;
 }
 
+/* =====================
+   MESSAGES
+===================== */
 #messages {
   flex: 1;
   padding: 15px;
   overflow-y: auto;
+}
+
+#messages div {
+  margin-bottom: 12px;
+  max-width: 75%;
+  padding: 12px 15px;
+  border-radius: 14px;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+#messages div.me {
+  background: linear-gradient(135deg, #d4af37, #ffd700);
+  color: #000;
+  margin-left: auto;
+}
+
+#messages div.other {
+  background: #1f1f1f;
+  color: #fff;
+}
+
+/* =====================
+   INPUT AREA
+===================== */
+.input-area {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  padding: 10px;
+  background: #111;
+  border-top: 1px solid #333;
 }
 
-.message {
-  max-width: 80%;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: #151515;
-  word-wrap: break-word;
-}
-
-/* =========================
-   INPUT BAR
-========================= */
-.chat-input {
-  display: flex;
-  gap: 10px;
-  padding: 15px;
-  background: var(--dark2);
-}
-
-.chat-input input {
+.input-area input {
   flex: 1;
   padding: 12px;
   border-radius: 10px;
   border: none;
-  outline: none;
-  font-size: 16px;
+  font-size: 15px;
 }
 
-.chat-input button {
+.input-area button {
+  margin-left: 8px;
   padding: 12px 18px;
   border-radius: 10px;
   border: none;
-  background: var(--gold);
-  color: #000;
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 18px;
-}
-
-.chat-input button:hover {
-  opacity: 0.9;
-}
-
-/* =========================
-   FLOATING ACTION BUTTON
-========================= */
-.fab {
-  position: fixed;
-  bottom: 25px;
-  right: 25px;
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
-  font-size: 36px;
-  background: var(--gold);
-  color: #000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0 0 20px rgba(212, 175, 55, 0.7);
-  z-index: 1001;
-  cursor: pointer;
-}
-
-/* =========================
-   MODAL (SEARCH PANEL)
-========================= */
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: none;
-  justify-content: center;
-  align-items: center;
-  background: rgba(0,0,0,0.75);
-  z-index: 1002;
-}
-
-.modal-content {
-  width: 320px;
-  background: #111;
-  padding: 20px;
-  border-radius: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.modal-content h3 {
-  margin: 0;
-  font-size: 20px;
-  color: var(--gold);
-}
-
-.modal-content input {
-  padding: 12px;
-  border-radius: 10px;
-  border: none;
-  outline: none;
-  font-size: 16px;
-}
-
-.modal-content button {
-  padding: 12px;
-  border-radius: 10px;
-  border: none;
-  background: var(--gold);
-  font-weight: 600;
-  cursor: pointer;
-}
-
-/* =========================
-   RESPONSIVE
-========================= */
-@media (max-width: 768px) {
-  body {
-    font-size: 20px;
-  }
-
-  .app {
-    flex-direction: column;
-  }
-
-  .sidebar {
-    width: 100%;
-    flex-direction: row;
-    overflow-x: auto;
-  }
-
-  #users div {
-    flex: 1;
-  }
-}
-
-.auth-container {
-  width: 100%;
-  max-width: 380px;
-  margin: 80px auto;
-  background: #111;
-  padding: 30px;
-  border-radius: 14px;
-  text-align: center;
-  position: relative;
-  z-index: 1;
-}
-
-.auth-title {
-  font-size: 26px;
-  color: #d4af37; /* golden */
-  margin-bottom: 20px;
-}
-
-.auth-container input {
-  width: 100%;
-  padding: 12px;
-  margin-bottom: 15px;
-  border-radius: 10px;
-  border: none;
-  outline: none;
-  font-size: 16px;
-  background: #161616;
-  color: #fff;
-}
-
-.auth-container button {
-  width: 100%;
-  padding: 12px;
-  border-radius: 10px;
-  border: none;
   background: #d4af37;
-  color: #000;
-  font-weight: 600;
-  font-size: 18px;
+  font-size: 16px;
+  font-weight: bold;
   cursor: pointer;
 }
 
-.auth-container button:hover {
-  opacity: 0.9;
+/* =====================
+   FLOATING +
+===================== */
+.plus-btn {
+  position: fixed;
+  bottom: 85px;
+  right: 20px;
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #d4af37, #ffd700);
+  color: #000;
+  font-size: 34px;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.6);
 }
 
-.switch-auth {
-  margin-top: 12px;
-  color: #ccc;
+/* =====================
+   BOTTOM NAVIGATION
+===================== */
+.bottom-nav {
+  height: 65px;
+  background: #111;
+  border-top: 1px solid #333;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
 }
 
-.switch-auth a {
+.bottom-nav div {
+  font-size: 22px;
+  color: #aaa;
+  cursor: pointer;
+}
+
+.bottom-nav div.active {
   color: #d4af37;
-  text-decoration: none;
 }
 
-.switch-auth a:hover {
-  text-decoration: underline;
+/* =====================
+   LISTS (USERS / GROUPS)
+===================== */
+#lists {
+  display: flex;
+  background: #141414;
+  border-bottom: 1px solid #333;
+}
+
+#lists > div {
+  flex: 1;
+  padding: 10px;
+}
+
+#lists h4 {
+  color: #d4af37;
+  margin-bottom: 8px;
+}
+
+#users div,
+#rooms div {
+  padding: 8px;
+  border-radius: 8px;
+  margin-bottom: 5px;
+  background: #1c1c1c;
+  cursor: pointer;
+}
+
+#users div:hover,
+#rooms div:hover {
+  background: #2a2a2a;
+}
+
+/* =====================
+   SCROLLBAR
+===================== */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4af37;
+  border-radius: 5px;
    }
