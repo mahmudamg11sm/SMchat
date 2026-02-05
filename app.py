@@ -1,141 +1,116 @@
 import os
 from flask import Flask, render_template, request, send_from_directory
-from flask_socketio import SocketIO, emit, join_room
+from flask_socketio import SocketIO, emit, join_room, leave_room
 from werkzeug.utils import secure_filename
 import database as db
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "smchat-secret"
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
+socketio = SocketIO(app, cors_allowed_origins="*")
 
-USERS = {}
+UPLOAD_FOLDER = "static/uploads"
+IMAGE_EXT = {"png","jpg","jpeg","gif"}
+VIDEO_EXT = {"mp4","webm","mov"}
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
+USERS = {}  # sid -> username
+ROOMS = {"General"}
+
+# ---------------- ROUTES ----------------
 @app.route("/")
 def index():
     return render_template("index.html")
 
-# ================= CONNECT =================
-@socketio.on("connect")
-def connect():
-    pass
+@app.route("/uploads/<path:filename>")
+def uploads(filename):
+    return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
-# ================= JOIN =================
+# ---------------- SOCKET EVENTS ----------------
 @socketio.on("join")
 def join(data):
     username = data["username"]
     USERS[request.sid] = username
-
-    db.c.execute(
-        "INSERT OR IGNORE INTO users(username,online) VALUES(?,1)",
-        (username,)
-    )
+    room = data.get("room", "General")
+    join_room(room)
+    emit("system", f"{username} joined {room}", room=room)
+    emit("users_list", list(USERS.values()), broadcast=True)
+    emit("rooms_list", list(ROOMS), broadcast=True)
+    # add member to db
+    db.c.execute("INSERT OR IGNORE INTO users(username) VALUES(?)", (username,))
     db.db.commit()
 
-    emit("users_list", list(USERS.values()), broadcast=True)
-
-# ================= DISCONNECT =================
-@socketio.on("disconnect")
-def disconnect():
-    user = USERS.pop(request.sid, None)
-    if user:
-        db.c.execute("UPDATE users SET online=0 WHERE username=?", (user,))
-        db.db.commit()
-
-    emit("users_list", list(USERS.values()), broadcast=True)
-
-# ================= ROOM =================
-@socketio.on("create_room")
-def create_room(data):
-    name = data["room"]
+@socketio.on("create_channel")
+def create_channel(data):
+    name = data["name"]
     admin = USERS.get(request.sid)
+    db.c.execute("INSERT OR IGNORE INTO channels(name,admin) VALUES(?,?)", (name,admin))
+    db.c.execute("INSERT OR IGNORE INTO members(user,channel) VALUES(?,?)", (admin,name))
+    db.db.commit()
+    emit("channels_list", [c[0] for c in db.c.execute("SELECT name FROM channels")], broadcast=True)
 
-    db.c.execute(
-        "INSERT OR IGNORE INTO rooms(name,admin,type) VALUES(?,?,?)",
-        (name, admin, "group")
-    )
+@socketio.on("join_channel")
+def join_channel(data):
+    channel = data["channel"]
+    user = USERS.get(request.sid)
+    db.c.execute("INSERT OR IGNORE INTO members(user,channel) VALUES(?,?)", (user,channel))
+    db.db.commit()
+    join_room(channel)
+    emit("system", f"{user} joined {channel}", room=channel)
+
+@socketio.on("channel_message")
+def channel_message(data):
+    user = USERS.get(request.sid)
+    channel = data["channel"]
+    text = data.get("text","")
+    media = data.get("media",None)
+
+    media_url = None
+    mtype = "text"
+    if media:
+        file = media
+        name = secure_filename(file["name"])
+        ext = name.split(".")[-1].lower()
+        if ext in IMAGE_EXT:
+            folder = "images"
+            mtype = "image"
+        elif ext in VIDEO_EXT:
+            folder = "videos"
+            mtype = "video"
+        else:
+            return
+        path = f"{UPLOAD_FOLDER}/{folder}/{name}"
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path,"wb") as f:
+            f.write(bytes(file["data"]))
+        media_url = path
+
+    db.c.execute("INSERT INTO messages(sender,channel,text,type,media_url) VALUES(?,?,?,?,?)",
+                 (user,channel,text,mtype,media_url))
     db.db.commit()
 
-    emit("rooms_list", get_rooms(), broadcast=True)
+    emit("new_channel_message", {"sender":user,"channel":channel,"text":text,"type":mtype,"media_url":media_url}, room=channel)
 
-def get_rooms():
-    db.c.execute("SELECT name FROM rooms")
-    return [x[0] for x in db.c.fetchall()]
-
-# ================= JOIN ROOM =================
-@socketio.on("join_room")
-def join_room_event(data):
-    join_room(data["room"])
-    emit("room_message", {
-        "room": data["room"],
-        "from": "System",
-        "msg": f"{USERS.get(request.sid)} joined"
-    }, room=data["room"])
-
-# ================= ROOM MESSAGE =================
-@socketio.on("room_message")
-def room_message(data):
-    sender = USERS.get(request.sid)
-
-    db.c.execute(
-        "INSERT INTO messages(sender,room,text,type) VALUES(?,?,?,?)",
-        (sender, data["room"], data["msg"], "room")
-    )
-    db.db.commit()
-
-    emit("room_message", {
-        "room": data["room"],
-        "from": sender,
-        "msg": data["msg"]
-    }, room=data["room"])
-
-# ================= DM =================
-@socketio.on("private_message")
-def private_message(data):
-    sender = USERS.get(request.sid)
-
-    db.c.execute(
-        "INSERT INTO messages(sender,receiver,text,type) VALUES(?,?,?,?)",
-        (sender, data["to"], data["msg"], "dm")
-    )
-    db.db.commit()
-
-    for sid, user in USERS.items():
-        if user == data["to"]:
-            emit("private_message", {
-                "from": sender,
-                "msg": data["msg"]
-            }, room=sid)
-
-# ================= LIKE =================
-@socketio.on("like")
-def like(data):
-    db.c.execute(
-        "INSERT INTO likes(msg_id,username) VALUES(?,?)",
-        (data["msg_id"], USERS.get(request.sid))
-    )
-    db.db.commit()
-
-# ================= COMMENT =================
 @socketio.on("comment")
 def comment(data):
-    db.c.execute(
-        "INSERT INTO comments(msg_id,username,text) VALUES(?,?,?)",
-        (data["msg_id"], USERS.get(request.sid), data["text"])
-    )
+    db.c.execute("INSERT INTO comments(message_id,commenter,text) VALUES(?,?,?)",
+                 (data["msg_id"],USERS.get(request.sid),data["text"]))
     db.db.commit()
+    emit("new_comment", data, room=data["channel"])
 
-# ================= SEARCH =================
-@socketio.on("search")
-def search(data):
-    q = data["q"]
-    db.c.execute(
-        "SELECT username FROM users WHERE username=? OR phone=?",
-        (q,q)
-    )
-    r = db.c.fetchone()
-    emit("search_result", r[0] if r else None)
+@socketio.on("like")
+def like(data):
+    db.c.execute("INSERT INTO likes(message_id,user) VALUES(?,?)",
+                 (data["msg_id"],USERS.get(request.sid)))
+    db.db.commit()
+    emit("new_like", data, room=data["channel"])
 
-# ================= RUN =================
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT",10000))
+@socketio.on("disconnect")
+def disconnect():
+    username = USERS.pop(request.sid,None)
+    emit("users_list", list(USERS.values()), broadcast=True)
+    if username:
+        emit("system", f"{username} disconnected", broadcast=True)
+
+if __name__=="__main__":
+    port=int(os.environ.get("PORT",10000))
     socketio.run(app,host="0.0.0.0",port=port)
