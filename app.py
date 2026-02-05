@@ -1,163 +1,140 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, session
-from flask_socketio import SocketIO, join_room, emit
-import sqlite3
+from flask import Flask, render_template, request
+from flask_socketio import SocketIO, emit, join_room
+import database as db
 
-# ================== FLASK SETUP ==================
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY", "smchat-secret")
+app.config["SECRET_KEY"] = "smchat-secret"
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 
-# ================== DATABASE ==================
-DB_FILE = "chat.db"
+USERS = {}
 
-def init_db():
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    # users table
-    c.execute("""CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
-        password TEXT
-    )""")
-    # messages table
-    c.execute("""CREATE TABLE IF NOT EXISTS messages (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        sender TEXT,
-        receiver TEXT,
-        room TEXT,
-        message TEXT,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-    )""")
-    conn.commit()
-    conn.close()
-
-def query_db(query, args=(), one=False):
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute(query, args)
-    r = c.fetchall()
-    conn.commit()
-    conn.close()
-    return (r[0] if r else None) if one else r
-
-init_db()
-
-# ================== GLOBALS ==================
-USERS = {}  # sid -> username
-ROOMS = {"General"}  # default group
-ONLINE = set()
-
-# ================== ROUTES ==================
 @app.route("/")
-def home():
-    if "username" not in session:
-        return redirect(url_for("login"))
-    return render_template("index.html", username=session["username"])
+def index():
+    return render_template("index.html")
 
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
-        user = query_db("SELECT * FROM users WHERE username=? AND password=?", (username, password), one=True)
-        if user:
-            session["username"] = username
-            return redirect(url_for("home"))
-        else:
-            return render_template("login.html", error="Invalid credentials")
-    return render_template("login.html")
-
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
-        confirm = request.form["confirm_password"]
-        if password != confirm:
-            return render_template("register.html", error="Passwords do not match")
-        try:
-            query_db("INSERT INTO users (username, password) VALUES (?,?)", (username, password))
-            session["username"] = username
-            return redirect(url_for("home"))
-        except sqlite3.IntegrityError:
-            return render_template("register.html", error="Username already exists")
-    return render_template("register.html")
-
-@app.route("/logout")
-def logout():
-    session.pop("username", None)
-    return redirect(url_for("login"))
-
-# ================== SOCKET.IO ==================
+# ================= CONNECT =================
 @socketio.on("connect")
 def connect():
     pass
 
+# ================= JOIN =================
 @socketio.on("join")
-def on_join(data):
+def join(data):
     username = data["username"]
     USERS[request.sid] = username
-    ONLINE.add(username)
-    emit("online_users", list(ONLINE), broadcast=True)
-    emit("users_list", list(USERS.values()), broadcast=True)
-    emit("rooms_list", list(ROOMS), broadcast=True)
 
+    db.c.execute(
+        "INSERT OR IGNORE INTO users(username,online) VALUES(?,1)",
+        (username,)
+    )
+    db.db.commit()
+
+    emit("users_list", list(USERS.values()), broadcast=True)
+
+# ================= DISCONNECT =================
 @socketio.on("disconnect")
 def disconnect():
     user = USERS.pop(request.sid, None)
     if user:
-        ONLINE.discard(user)
-        emit("online_users", list(ONLINE), broadcast=True)
-        emit("users_list", list(USERS.values()), broadcast=True)
+        db.c.execute("UPDATE users SET online=0 WHERE username=?", (user,))
+        db.db.commit()
 
+    emit("users_list", list(USERS.values()), broadcast=True)
+
+# ================= ROOM =================
 @socketio.on("create_room")
 def create_room(data):
-    room = data["room"]
-    ROOMS.add(room)
-    emit("rooms_list", list(ROOMS), broadcast=True)
+    name = data["room"]
+    admin = USERS.get(request.sid)
 
+    db.c.execute(
+        "INSERT OR IGNORE INTO rooms(name,admin,type) VALUES(?,?,?)",
+        (name, admin, "group")
+    )
+    db.db.commit()
+
+    emit("rooms_list", get_rooms(), broadcast=True)
+
+def get_rooms():
+    db.c.execute("SELECT name FROM rooms")
+    return [x[0] for x in db.c.fetchall()]
+
+# ================= JOIN ROOM =================
 @socketio.on("join_room")
 def join_room_event(data):
-    room = data["room"]
-    join_room(room)
+    join_room(data["room"])
     emit("room_message", {
-        "room": room,
+        "room": data["room"],
         "from": "System",
-        "msg": f"{USERS.get(request.sid)} has joined the room"
-    }, room=room)
+        "msg": f"{USERS.get(request.sid)} joined"
+    }, room=data["room"])
 
+# ================= ROOM MESSAGE =================
 @socketio.on("room_message")
 def room_message(data):
-    room = data["room"]
-    msg = data["msg"]
     sender = USERS.get(request.sid)
-    query_db("INSERT INTO messages (sender, room, message) VALUES (?,?,?)", (sender, room, msg))
-    emit("room_message", {"room": room, "from": sender, "msg": msg}, room=room)
 
+    db.c.execute(
+        "INSERT INTO messages(sender,room,text,type) VALUES(?,?,?,?)",
+        (sender, data["room"], data["msg"], "room")
+    )
+    db.db.commit()
+
+    emit("room_message", {
+        "room": data["room"],
+        "from": sender,
+        "msg": data["msg"]
+    }, room=data["room"])
+
+# ================= DM =================
 @socketio.on("private_message")
 def private_message(data):
-    to = data["to"]
-    msg = data["msg"]
     sender = USERS.get(request.sid)
-    query_db("INSERT INTO messages (sender, receiver, message) VALUES (?,?,?)", (sender, to, msg))
+
+    db.c.execute(
+        "INSERT INTO messages(sender,receiver,text,type) VALUES(?,?,?,?)",
+        (sender, data["to"], data["msg"], "dm")
+    )
+    db.db.commit()
+
     for sid, user in USERS.items():
-        if user == to:
-            emit("private_message", {"from": sender, "msg": msg}, room=sid)
+        if user == data["to"]:
+            emit("private_message", {
+                "from": sender,
+                "msg": data["msg"]
+            }, room=sid)
 
-@socketio.on("seen")
-def seen(data):
-    emit("seen", {"from": data.get("from"), "to": data.get("to")}, broadcast=True)
+# ================= LIKE =================
+@socketio.on("like")
+def like(data):
+    db.c.execute(
+        "INSERT INTO likes(msg_id,username) VALUES(?,?)",
+        (data["msg_id"], USERS.get(request.sid))
+    )
+    db.db.commit()
 
-@socketio.on("typing")
-def typing(data):
-    emit("typing", {
-        "from": USERS.get(request.sid),
-        "to": data.get("to"),
-        "room": data.get("room")
-    }, broadcast=True)
+# ================= COMMENT =================
+@socketio.on("comment")
+def comment(data):
+    db.c.execute(
+        "INSERT INTO comments(msg_id,username,text) VALUES(?,?,?)",
+        (data["msg_id"], USERS.get(request.sid), data["text"])
+    )
+    db.db.commit()
 
-# ================== RUN SERVER ==================
+# ================= SEARCH =================
+@socketio.on("search")
+def search(data):
+    q = data["q"]
+    db.c.execute(
+        "SELECT username FROM users WHERE username=? OR phone=?",
+        (q,q)
+    )
+    r = db.c.fetchone()
+    emit("search_result", r[0] if r else None)
+
+# ================= RUN =================
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    socketio.run(app, host="0.0.0.0", port=port)
+    port = int(os.environ.get("PORT",10000))
+    socketio.run(app,host="0.0.0.0",port=port)
