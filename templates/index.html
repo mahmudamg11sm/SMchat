@@ -1,171 +1,27 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>SMchat</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- CSS -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-
-  <!-- Socket -->
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<meta charset="UTF-8">
+<title>SMchat</title>
+<link rel="stylesheet" href="/static/style.css">
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
 <body>
 
-<!-- ================= LOGIN / HOME ================= -->
-<div id="login">
-  <h2>SMchat</h2>
-  <input id="username" placeholder="Enter username">
-  <button onclick="join()">Continue</button>
+<div id="navbar">
+  🛖 Home | 🌐 Public | 🔔 Notifications | 🔍 Search | 👥 Channels
 </div>
 
-<!-- ================= MAIN APP ================= -->
-<div id="chat" style="display:none;">
-
-  <!-- HEADER -->
-  <div class="header" id="title">Home</div>
-
-  <!-- CONTENT -->
+<div id="chat">
   <div id="messages"></div>
 
-  <!-- INPUT -->
-  <div class="input-area">
-    <input id="msg" placeholder="Write a message...">
-    <button onclick="send()">Send</button>
+  <div id="input">
+    <input type="file" id="file">
+    <input type="text" id="msg" placeholder="Type message">
+    <button onclick="sendMessage()">Send</button>
   </div>
-
-  <!-- FLOATING + -->
-  <button class="plus-btn" onclick="openPlus()">+</button>
-
-  <!-- BOTTOM NAV -->
-  <div class="bottom-nav">
-    <div class="active" onclick="goHome()">🛖</div>
-    <div onclick="goPublic()">🌐</div>
-    <div onclick="goNotify()">🔔</div>
-    <div onclick="goSearch()">🔍</div>
-    <div onclick="goChats()">👥</div>
-    <div onclick="goInfo()">ℹ️</div>
-  </div>
-
 </div>
 
-<!-- ================= JS ================= -->
-<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
-
-<script>
-const socket = io();
-let myname = "";
-let current = {type:"home", name:"Home"};
-
-function join(){
-  myname = document.getElementById("username").value;
-  if(!myname) return alert("Enter username");
-  socket.emit("join",{username:myname});
-
-  document.getElementById("login").style.display="none";
-  document.getElementById("chat").style.display="flex";
-}
-
-/* ================= NAVIGATION ================= */
-
-function goHome(){
-  setTitle("Home");
-  clear();
-  addSystem("Welcome to SMchat");
-}
-
-function goPublic(){
-  setTitle("Public Posts");
-  clear();
-  addSystem("🌐 Public posts will appear here");
-}
-
-function goNotify(){
-  setTitle("Notifications");
-  clear();
-  addSystem("🔔 No notifications yet");
-}
-
-function goSearch(){
-  setTitle("Search");
-  clear();
-  addSystem("🔍 Search username or phone number");
-}
-
-function goChats(){
-  setTitle("Chats & Groups");
-  clear();
-  addSystem("👥 Your chats and groups");
-}
-
-function goInfo(){
-  setTitle("About");
-  clear();
-  addSystem("ℹ️ SMchat – Secure Media Chat App");
-}
-
-function setTitle(t){
-  document.getElementById("title").innerText = t;
-  current.name = t;
-}
-
-function clear(){
-  document.getElementById("messages").innerHTML = "";
-}
-
-/* ================= CHAT ================= */
-
-function send(){
-  let m = document.getElementById("msg").value;
-  if(!m) return;
-
-  socket.emit("room_message",{
-    room:"General",
-    msg:m
-  });
-
-  addMe(m);
-  document.getElementById("msg").value="";
-}
-
-socket.on("room_message",d=>{
-  if(d.from !== myname){
-    addOther(d.from + ": " + d.msg);
-  }
-});
-
-/* ================= UI HELPERS ================= */
-
-function addMe(t){
-  let m=document.getElementById("messages");
-  m.innerHTML += `<div class="me">${t}</div>`;
-  m.scrollTop=m.scrollHeight;
-}
-
-function addOther(t){
-  let m=document.getElementById("messages");
-  m.innerHTML += `<div class="other">${t}</div>`;
-  m.scrollTop=m.scrollHeight;
-}
-
-function addSystem(t){
-  let m=document.getElementById("messages");
-  m.innerHTML += `<div class="other">${t}</div>`;
-}
-
-/* ================= FLOATING + ================= */
-
-function openPlus(){
-  alert(
-`Create:
-• Group
-• Channel
-• Public Post
-(Admin features coming next)`
-  );
-}
-</script>
-
+<script src="/static/chat.js"></script>
 </body>
-    </html>
+</html>
