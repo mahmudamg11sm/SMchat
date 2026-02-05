@@ -1,68 +1,207 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <title>SMchat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <link rel="stylesheet" href="/static/style.css">
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+  <style>
+    :root{
+      --gold:#d4af37;
+      --dark:#111;
+    }
+
+    body{
+      margin:0;
+      font-family:Arial, sans-serif;
+      background:#000;
+      color:#fff;
+    }
+
+    button{
+      background:var(--gold);
+      border:none;
+      padding:10px 14px;
+      border-radius:6px;
+      cursor:pointer;
+      font-weight:bold;
+    }
+
+    input{
+      padding:10px;
+      border-radius:6px;
+      border:none;
+      outline:none;
+    }
+
+    #login{
+      height:100vh;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      gap:10px;
+    }
+
+    #chat{
+      display:flex;
+      height:100vh;
+      flex-direction:column;
+    }
+
+    header{
+      background:#111;
+      padding:12px;
+      text-align:center;
+      font-weight:bold;
+      color:var(--gold);
+    }
+
+    #lists{
+      display:flex;
+      gap:10px;
+      padding:10px;
+      background:#0c0c0c;
+    }
+
+    #users div, #rooms div{
+      padding:6px;
+      cursor:pointer;
+      border-bottom:1px solid #222;
+    }
+
+    #messages{
+      flex:1;
+      overflow-y:auto;
+      padding:10px;
+    }
+
+    .msg{
+      margin-bottom:6px;
+    }
+
+    .input-bar{
+      display:flex;
+      gap:8px;
+      padding:10px;
+      background:#111;
+    }
+
+    /* Floating + button */
+    .fab{
+      position:fixed;
+      bottom:20px;
+      right:20px;
+      width:60px;
+      height:60px;
+      border-radius:50%;
+      font-size:30px;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      box-shadow:0 0 15px rgba(212,175,55,.6);
+    }
+
+    /* Search panel */
+    #searchPanel{
+      position:fixed;
+      bottom:100px;
+      right:20px;
+      background:#111;
+      padding:15px;
+      border-radius:10px;
+      width:260px;
+      display:none;
+      box-shadow:0 0 20px rgba(0,0,0,.8);
+    }
+
+    #searchPanel h4{
+      margin:0 0 10px;
+      color:var(--gold);
+    }
+
+    #searchResults div{
+      padding:6px;
+      cursor:pointer;
+      border-bottom:1px solid #222;
+    }
+  </style>
 </head>
 <body>
 
+<!-- LOGIN -->
 <div id="login">
-  <h2>SMchat</h2>
+  <h2 style="color:var(--gold)">SMchat</h2>
   <input id="username" placeholder="Username">
   <button onclick="join()">Shiga</button>
 </div>
 
+<!-- CHAT -->
 <div id="chat" style="display:none;">
-  <h3 id="title">General</h3>
+  <header id="title">General</header>
 
   <div id="lists">
     <div>
-      <h4>Users</h4>
+      <b style="color:var(--gold)">Users</b>
       <div id="users"></div>
     </div>
     <div>
-      <h4>Groups</h4>
-      <input id="newRoom" placeholder="New group">
-      <button onclick="createRoom()">+</button>
+      <b style="color:var(--gold)">Groups</b>
       <div id="rooms"></div>
     </div>
   </div>
 
   <div id="messages"></div>
 
-  <input id="msg" placeholder="Rubuta saƙo...">
-  <button onclick="send()">Aika</button>
+  <div class="input-bar">
+    <input id="msg" placeholder="Rubuta saƙo..." style="flex:1">
+    <button onclick="send()">Aika</button>
+  </div>
+</div>
+
+<!-- Floating + -->
+<button class="fab" onclick="toggleSearch()">+</button>
+
+<!-- Search Panel -->
+<div id="searchPanel">
+  <h4>Search User</h4>
+  <input id="searchInput" placeholder="Username">
+  <div id="searchResults"></div>
 </div>
 
 <script>
 const socket = io();
-let myname = "";
-let current = {type:"room", name:"General"};
+let myname="";
+let current={type:"room",name:"General"};
+let allUsers=[];
 
 function join(){
-  myname = document.getElementById("username").value;
+  myname=document.getElementById("username").value;
   socket.emit("join",{username:myname});
   document.getElementById("login").style.display="none";
-  document.getElementById("chat").style.display="block";
+  document.getElementById("chat").style.display="flex";
   socket.emit("join_room",{room:"General"});
 }
 
-socket.on("users_list", users=>{
-  let u = document.getElementById("users");
+socket.on("users_list",users=>{
+  allUsers=users;
+  let u=document.getElementById("users");
   u.innerHTML="";
   users.forEach(x=>{
     if(x!==myname){
-      u.innerHTML += `<div onclick="dm('${x}')">${x}</div>`;
+      u.innerHTML+=`<div onclick="dm('${x}')">${x}</div>`;
     }
   });
 });
 
-socket.on("rooms_list", rooms=>{
-  let r = document.getElementById("rooms");
+socket.on("rooms_list",rooms=>{
+  let r=document.getElementById("rooms");
   r.innerHTML="";
   rooms.forEach(x=>{
-    r.innerHTML += `<div onclick="joinRoom('${x}')">${x}</div>`;
+    r.innerHTML+=`<div onclick="joinRoom('${x}')">${x}</div>`;
   });
 });
 
@@ -79,13 +218,10 @@ function joinRoom(r){
   document.getElementById("messages").innerHTML="";
 }
 
-function createRoom(){
-  let r=document.getElementById("newRoom").value;
-  socket.emit("create_room",{room:r});
-}
-
 function send(){
   let m=document.getElementById("msg").value;
+  if(!m) return;
+
   if(current.type==="dm"){
     socket.emit("private_message",{to:current.name,msg:m});
   }else{
@@ -106,10 +242,26 @@ socket.on("room_message",d=>{
 
 function add(t){
   let m=document.getElementById("messages");
-  m.innerHTML += `<div>${t}</div>`;
+  m.innerHTML+=`<div class="msg">${t}</div>`;
   m.scrollTop=m.scrollHeight;
 }
+
+/* Search */
+function toggleSearch(){
+  let p=document.getElementById("searchPanel");
+  p.style.display = p.style.display==="block" ? "none" : "block";
+}
+
+document.getElementById("searchInput").addEventListener("input",function(){
+  let v=this.value.toLowerCase();
+  let r=document.getElementById("searchResults");
+  r.innerHTML="";
+  allUsers.filter(u=>u.toLowerCase().includes(v) && u!==myname)
+          .forEach(u=>{
+            r.innerHTML+=`<div onclick="dm('${u}');toggleSearch()">${u}</div>`;
+          });
+});
 </script>
 
 </body>
-    </html>
+  </html>
