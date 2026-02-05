@@ -1,179 +1,52 @@
 const socket = io();
 
-let myname = "";
-let current = {
-  type: "room",   // room | dm | public
-  name: "General"
-};
+let myname = prompt("Username:");
+let current_channel = "General";
 
-/* ================= CONNECT ================= */
+socket.emit("join",{username:myname,room:current_channel});
 
-socket.on("connect", () => {
-  console.log("Connected");
-});
+function sendMessage(){
+  let msg = document.getElementById("msg").value;
+  let f = document.getElementById("file").files[0];
 
-/* ================= JOIN ================= */
-
-function setMyName(name){
-  myname = name;
-}
-
-/* ================= USERS ONLINE ================= */
-
-socket.on("users_list", users=>{
-  let u = document.getElementById("users");
-  if(!u) return;
-
-  u.innerHTML="";
-  users.forEach(x=>{
-    let d = document.createElement("div");
-    d.innerText = x;
-    d.onclick = ()=>openDM(x);
-    u.appendChild(d);
-  });
-});
-
-/* ================= TYPING ================= */
-
-const msgInput = document.getElementById("msg");
-if(msgInput){
-  msgInput.addEventListener("input",()=>{
-    socket.emit("typing",{
-      from: myname,
-      room: current.type==="room" ? current.name : null,
-      to: current.type==="dm" ? current.name : null
-    });
-  });
-}
-
-socket.on("typing",d=>{
-  if(d.from && d.from!==myname){
-    let title = document.getElementById("title");
-    let old = title.innerText;
-    title.innerText = d.from + " is typing...";
-    setTimeout(()=>title.innerText = old,1500);
-  }
-});
-
-/* ================= SEND MESSAGE ================= */
-
-function send(){
-  let input = document.getElementById("msg");
-  let text = input.value.trim();
-  if(!text) return;
-
-  if(current.type==="dm"){
-    socket.emit("private_message",{
-      to: current.name,
-      msg: text
-    });
-  }else{
-    socket.emit("room_message",{
-      room: current.name,
-      msg: text
-    });
+  let media = null;
+  if(f){
+    let reader = new FileReader();
+    reader.onload = ()=>{
+      media = {name:f.name,data:Array.from(new Uint8Array(reader.result))};
+      socket.emit("channel_message",{channel:current_channel,text:msg,media:media});
+    };
+    reader.readAsArrayBuffer(f);
+  } else {
+    socket.emit("channel_message",{channel:current_channel,text:msg});
   }
 
-  addMessage({
-    from: myname,
-    msg: text,
-    me:true
-  });
-
-  input.value="";
+  document.getElementById("msg").value="";
+  document.getElementById("file").value="";
 }
 
-/* ================= RECEIVE ================= */
+// ---------------- RECEIVERS ----------------
+socket.on("new_channel_message", d=>{
+  let m = document.getElementById("messages");
+  let div = document.createElement("div");
+  div.className = "msg";
 
-socket.on("room_message",d=>{
-  if(d.from !== myname && d.room===current.name){
-    addMessage({from:d.from,msg:d.msg});
-  }
-});
+  let mediaHTML = "";
+  if(d.type==="image") mediaHTML=`<img src="/${d.media_url}" />`;
+  if(d.type==="video") mediaHTML=`<video src="/${d.media_url}" controls></video>`;
 
-socket.on("private_message",d=>{
-  addMessage({from:d.from,msg:d.msg});
-  socket.emit("seen",{from:d.from,to:myname});
-});
+  div.innerHTML = `<b>${d.sender}</b>: ${d.text}<br>${mediaHTML}
+                   <br><button onclick="like(${d.id})">Like</button>
+                   <button onclick="comment(${d.id})">Comment</button>`;
 
-/* ================= SEEN ================= */
-
-socket.on("seen",d=>{
-  addSystem(`✓✓ Seen by ${d.to}`);
-});
-
-/* ================= UI MESSAGE ================= */
-
-function addMessage(data){
-  let m=document.getElementById("messages");
-  if(!m) return;
-
-  let div=document.createElement("div");
-  div.className = data.me ? "me" : "other";
-
-  div.innerHTML = `
-    <span>${data.from ? data.from+": " : ""}${data.msg}</span>
-    <div class="msg-actions">
-      <span onclick="likeMsg(this)">👍 <b>0</b></span>
-      <span onclick="commentMsg()">💬</span>
-      <span onclick="shareMsg()">🔁</span>
-    </div>
-  `;
   m.appendChild(div);
   m.scrollTop=m.scrollHeight;
-}
+});
 
-function addSystem(t){
-  let m=document.getElementById("messages");
-  let d=document.createElement("div");
-  d.className="other";
-  d.innerText=t;
-  m.appendChild(d);
-}
-
-/* ================= ACTIONS ================= */
-
-function likeMsg(el){
-  let b = el.querySelector("b");
-  b.innerText = parseInt(b.innerText)+1;
-}
-
-function commentMsg(){
-  alert("Comments feature (admin can lock/unlock)");
-}
-
-function shareMsg(){
-  alert("Share coming soon");
-}
-
-/* ================= DM ================= */
-
-function openDM(user){
-  current={type:"dm",name:user};
-  document.getElementById("title").innerText="DM: "+user;
-  document.getElementById("messages").innerHTML="";
-}
-
-/* ================= SEARCH ================= */
-
-function searchUser(value){
-  if(!value){
-    addSystem("No results");
-    return;
-  }
-  addSystem(`Result found: ${value}`);
-}
-
-/* ================= GROUP / CHANNEL ================= */
-
-function createGroup(name){
-  socket.emit("create_room",{room:name});
-}
-
-/* ================= ONLINE STATUS ================= */
-
-socket.on("online_users",users=>{
-  document.querySelectorAll("#users div").forEach(d=>{
-    d.style.color = users.includes(d.innerText) ? "#00ff88" : "#aaa";
-  });
+socket.on("system", msg=>{
+  let m = document.getElementById("messages");
+  let div = document.createElement("div");
+  div.style.color="yellow";
+  div.innerText = msg;
+  m.appendChild(div);
 });
