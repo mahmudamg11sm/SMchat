@@ -4,12 +4,8 @@
   <meta charset="UTF-8">
   <title>SMchat</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- STYLE -->
   <link rel="stylesheet" href="/css/style.css">
-
-  <!-- ICON -->
-  <link rel="icon" href="/img/logo.png">
+  <link rel="icon" href="/img/sm_bg_logo.png">
 </head>
 <body>
 
@@ -27,12 +23,12 @@
       <input
         type="text"
         id="search"
-        placeholder="Search username / mobile"
+        placeholder="Search username / contact"
       >
 
       <!-- USERS -->
       <div id="users">
-        <!-- users list from server -->
+        <!-- Users list from server -->
       </div>
     </div>
 
@@ -41,7 +37,7 @@
 
       <!-- HEADER -->
       <div class="chat-header">
-        <h3 id="title">Chat</h3>
+        <h3 id="title">General</h3>
       </div>
 
       <!-- MESSAGES -->
@@ -52,7 +48,7 @@
         <input
           type="text"
           id="msg"
-          placeholder="Rubuta saƙo..."
+          placeholder="Type a message..."
           autocomplete="off"
         >
         <button id="send">➤</button>
@@ -61,7 +57,7 @@
 
   </div>
 
-  <!-- FLOATING PLUS BUTTON -->
+  <!-- FLOATING ACTION BUTTON -->
   <button class="fab" id="addBtn">+</button>
 
   <!-- SEARCH MODAL -->
@@ -73,7 +69,7 @@
     </div>
   </div>
 
-  <!-- SOCKET -->
+  <!-- SOCKET.IO -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/chat.js"></script>
 
@@ -85,6 +81,15 @@
 
     addBtn.onclick = ()=> modal.style.display = "flex";
     closeModal.onclick = ()=> modal.style.display = "none";
+
+    // Optional: live search in sidebar
+    const searchInput = document.getElementById("search");
+    searchInput.addEventListener("input", ()=>{
+      const query = searchInput.value.toLowerCase();
+      document.querySelectorAll("#users div").forEach(u=>{
+        u.style.display = u.innerText.toLowerCase().includes(query) ? "block" : "none";
+      });
+    });
   </script>
 
 </body>
