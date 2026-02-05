@@ -1,42 +1,66 @@
 import sqlite3
 
-DB_NAME = "chat.db"
+DB = "chat.db"
 
-def get_db():
-    conn = sqlite3.connect(DB_NAME, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
+def connect():
+    return sqlite3.connect(DB, check_same_thread=False)
 
-def init_db():
-    db = get_db()
-    cur = db.cursor()
+db = connect()
+c = db.cursor()
 
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL
-    )
-    """)
+# USERS
+c.execute("""
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT UNIQUE,
+  phone TEXT,
+  bio TEXT,
+  photo TEXT,
+  online INTEGER DEFAULT 0
+)
+""")
 
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS rooms (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT UNIQUE NOT NULL
-    )
-    """)
+# MESSAGES
+c.execute("""
+CREATE TABLE IF NOT EXISTS messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  sender TEXT,
+  receiver TEXT,
+  room TEXT,
+  text TEXT,
+  type TEXT,
+  time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+""")
 
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS messages (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        sender TEXT NOT NULL,
-        receiver TEXT,
-        room TEXT,
-        message TEXT NOT NULL,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
+# LIKES
+c.execute("""
+CREATE TABLE IF NOT EXISTS likes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  msg_id INTEGER,
+  username TEXT
+)
+""")
 
-    # default room
-    cur.execute("INSERT OR IGNORE INTO rooms (name) VALUES (?)", ("General",))
+# COMMENTS
+c.execute("""
+CREATE TABLE IF NOT EXISTS comments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  msg_id INTEGER,
+  username TEXT,
+  text TEXT
+)
+""")
 
-    db.commit()
+# GROUPS / CHANNELS
+c.execute("""
+CREATE TABLE IF NOT EXISTS rooms (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT UNIQUE,
+  admin TEXT,
+  type TEXT,
+  comments_locked INTEGER DEFAULT 0
+)
+""")
+
+db.commit()
