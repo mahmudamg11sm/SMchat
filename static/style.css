@@ -219,3 +219,14 @@ header{
     font-size:24px;
   }
   }
+
+/* =========================
+   CHAT BACKGROUND LOGO
+========================= */
+#messages{
+  position:relative;
+  background:
+    linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.85)),
+    url("/static/sm_bg_logo.png") center no-repeat;
+  background-size:220px;
+   }
