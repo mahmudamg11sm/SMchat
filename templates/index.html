@@ -1,27 +1,52 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>SMchat</title>
-<link rel="stylesheet" href="/static/style.css">
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <meta charset="UTF-8">
+  <title>SMchat</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 <body>
 
-<div id="navbar">
-  🛖 Home | 🌐 Public | 🔔 Notifications | 🔍 Search | 👥 Channels
+<div id="login">
+  <h2>SMchat</h2>
+  <input id="username" placeholder="Enter your username">
+  <button onclick="join()">Login</button>
 </div>
 
-<div id="chat">
+<div id="chat" style="display:none;">
+  <div class="top-menu">
+    <span>🏠 Home</span> | 
+    <span>🌐 Public</span> | 
+    <span>🔔 Notifications</span> | 
+    <span>🔍 Search</span> | 
+    <span>👥 Channels</span>
+  </div>
+
+  <h3 id="title">General</h3>
+
+  <div id="lists">
+    <div class="users-section">
+      <h4>Users</h4>
+      <div id="users"></div>
+    </div>
+
+    <div class="rooms-section">
+      <h4>Groups</h4>
+      <input id="newRoom" placeholder="New group">
+      <button onclick="createRoom()">+</button>
+      <div id="rooms"></div>
+    </div>
+  </div>
+
   <div id="messages"></div>
 
-  <div id="input">
-    <input type="file" id="file">
-    <input type="text" id="msg" placeholder="Type message">
-    <button onclick="sendMessage()">Send</button>
-  </div>
+  <input id="msg" placeholder="Type a message...">
+  <input type="file" id="mediaFile">
+  <button onclick="send()">Send</button>
+  <button onclick="sendMedia()">Upload</button>
 </div>
 
-<script src="/static/chat.js"></script>
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
 </body>
-</html>
+        </html>
