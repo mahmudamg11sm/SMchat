@@ -3,50 +3,89 @@
 <head>
   <meta charset="UTF-8">
   <title>SMchat</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+  <link rel="stylesheet" href="/static/css/style.css">
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
 <body>
 
-<div id="login">
-  <h2>SMchat</h2>
-  <input id="username" placeholder="Enter your username">
-  <button onclick="join()">Login</button>
+<!-- ========== TOP BAR ========== -->
+<div class="topbar">
+  <div class="logo">SMchat</div>
+  <div class="menu-btn" onclick="toggleMenu()">≡</div>
 </div>
 
-<div id="chat" style="display:none;">
-  <div class="top-menu">
-    <span>🏠 Home</span> | 
-    <span>🌐 Public</span> | 
-    <span>🔔 Notifications</span> | 
-    <span>🔍 Search</span> | 
-    <span>👥 Channels</span>
-  </div>
-
-  <h3 id="title">General</h3>
-
-  <div id="lists">
-    <div class="users-section">
-      <h4>Users</h4>
-      <div id="users"></div>
-    </div>
-
-    <div class="rooms-section">
-      <h4>Groups</h4>
-      <input id="newRoom" placeholder="New group">
-      <button onclick="createRoom()">+</button>
-      <div id="rooms"></div>
-    </div>
-  </div>
-
-  <div id="messages"></div>
-
-  <input id="msg" placeholder="Type a message...">
-  <input type="file" id="mediaFile">
-  <button onclick="send()">Send</button>
-  <button onclick="sendMedia()">Upload</button>
+<div id="sideMenu" class="side-menu">
+  <button onclick="toggleTheme()">🌙 / 🟡 Theme</button>
+  <button>Profile</button>
+  <button>Report</button>
+  <button>Logout</button>
 </div>
 
-<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+<!-- ========== MAIN VIEW ========== -->
+<div id="mainView">
+
+  <!-- HOME -->
+  <div class="view active" id="homeView">
+    <h2>Home</h2>
+    <div id="feed"></div>
+  </div>
+
+  <!-- PUBLIC -->
+  <div class="view" id="publicView">
+    <h2>Public Rooms</h2>
+    <div id="rooms"></div>
+  </div>
+
+  <!-- NOTIFICATIONS -->
+  <div class="view" id="notifyView">
+    <h2>Notifications</h2>
+    <div id="notifications"></div>
+  </div>
+
+  <!-- SEARCH -->
+  <div class="view" id="searchView">
+    <input id="searchInput" placeholder="Search username or number">
+    <div id="searchResults"></div>
+  </div>
+
+  <!-- USERS / CHANNELS -->
+  <div class="view" id="usersView">
+    <h2>Chats</h2>
+    <div id="users"></div>
+  </div>
+
+  <!-- INFO -->
+  <div class="view" id="infoView">
+    <h2>About SMchat</h2>
+    <p>Secure chat, channels, media & community.</p>
+  </div>
+
+  <!-- CHAT -->
+  <div class="view" id="chatView">
+    <div id="chatTitle"></div>
+    <div id="messages"></div>
+
+    <input type="file" id="mediaInput">
+    <input id="msgInput" placeholder="Type message">
+    <button onclick="sendMessage()">Send</button>
+  </div>
+
+</div>
+
+<!-- ========== BOTTOM NAV ========== -->
+<div class="bottom-nav">
+  <img src="/static/img/ui/home.png" onclick="openView('homeView')">
+  <img src="/static/img/ui/public.png" onclick="openView('publicView')">
+  <img src="/static/img/ui/notifications.png" onclick="openView('notifyView')">
+  <img src="/static/img/ui/search.png" onclick="openView('searchView')">
+  <img src="/static/img/ui/users.png" onclick="openView('usersView')">
+  <img src="/static/img/ui/info.png" onclick="openView('infoView')">
+</div>
+
+<script src="/static/js/ui.js"></script>
+<script src="/static/js/chat.js"></script>
+
 </body>
-        </html>
+  </html>
