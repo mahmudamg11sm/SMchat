@@ -68,6 +68,21 @@ body {
   cursor: pointer;
 }
 
+.chat-item {
+  padding: 10px;
+  border-bottom: 1px solid #333;
+}
+
+.chat-item a {
+  color: white;
+  text-decoration: none;
+}
+
+.chat-item.unread {
+  background: #1a1a1a;
+  border-left: 4px solid gold;
+  }
+
 /* -------- Golden Theme -------- */
 body.golden {
   background: #1a1400;
