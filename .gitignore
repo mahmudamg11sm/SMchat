@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.sqlite3
+
+# Environment
+instance/database.db
+venv/
+.env
+
+# Uploads (keep .gitkeep for empty folders)
+static/uploads/images/*
+!static/uploads/images/.gitkeep
+static/uploads/videos/*
+!static/uploads/videos/.gitkeep
+
+# Byte-compiled / cache
+*.pyc
+*.pyo
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
