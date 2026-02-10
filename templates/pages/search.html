@@ -1,6 +1,5 @@
 {% extends "layout/base.html" %}
 {% block content %}
-
 <form method="get">
   <input name="q" placeholder="Search username">
 </form>
@@ -12,5 +11,4 @@
 {% elif request.args.get("q") %}
   <p>No results found</p>
 {% endif %}
-
 {% endblock %}
