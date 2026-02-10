@@ -1,64 +1,49 @@
-const socket = io();
 const chatBox = document.getElementById("chat-box");
 const msgInput = document.getElementById("msg");
-const chatForm = document.getElementById("chat-form");
 const mediaInput = document.getElementById("media");
-let typingTimeout;
+const chatTitle = document.getElementById("chat-title");
 
-chatForm.addEventListener("submit", e => {
-  e.preventDefault();
-  sendMessage();
+socket.on("dm_message", d=>{
+  addMessage(d.from,d.msg,d.media,d.type,d.seen);
 });
 
-msgInput.addEventListener("input", () => {
-  socket.emit("typing", { to: "{{ username }}" });
+socket.on("typing",d=>{
+  if(d.from !== currentUser){
+    const typingEl = document.getElementById("typing");
+    typingEl.innerText = `${d.from} is typing...`;
+    setTimeout(()=>typingEl.innerText="",1500);
+  }
 });
 
-socket.on("typing", d => {
-  const typingDiv = document.getElementById("typing");
-  typingDiv.innerText = `${d.from} is typing...`;
-  clearTimeout(typingTimeout);
-  typingTimeout = setTimeout(() => { typingDiv.innerText = ""; }, 1500);
+msgInput.addEventListener("input",()=>{
+  socket.emit("typing",{to:chatWith});
 });
 
-socket.on("private_message", d => {
-  addMessage(d.from, d.msg, d.type, d.seen, d.from=== "{{ current_user }}");
-});
-
-function sendMessage() {
+function sendMsg(){
   const msg = msgInput.value;
-  const media = mediaInput.files[0];
+  const file = mediaInput.files[0];
 
-  if (media) {
+  if(file){
     const reader = new FileReader();
-    reader.onload = function() {
-      socket.emit("media_message", {
-        to: "{{ username }}",
-        file: { name: media.name, data: Array.from(new Uint8Array(this.result)) },
-        room: "{{ username }}",
-      });
-    };
-    reader.readAsArrayBuffer(media);
-    mediaInput.value = "";
+    reader.onload = e=>{
+      socket.emit("dm_message",{to:chatWith,msg:msg,media:{name:file.name,data:Array.from(new Uint8Array(e.target.result))}});
+    }
+    reader.readAsArrayBuffer(file);
+  }else{
+    socket.emit("dm_message",{to:chatWith,msg:msg});
   }
-
-  if (msg.trim()!=="") {
-    socket.emit("private_message", { to: "{{ username }}", msg });
-    msgInput.value = "";
-  }
+  msgInput.value="";
+  mediaInput.value="";
 }
 
-function addMessage(from, text, type="text", seen=false, isMe=false) {
+function addMessage(sender,text,media,type,seen=false){
   const div = document.createElement("div");
-  div.className = isMe ? "me" : "them";
-
-  let content = `<span class="sender">${from}</span>: `;
-  if (type==="text") content += text;
-  if (type==="image") content += `<img src="/static/uploads/images/${text}">`;
-  if (type==="video") content += `<video src="/static/uploads/videos/${text}" controls></video>`;
-  if (seen) content += `<span class="seen">✓✓</span>`;
-
-  div.innerHTML = content;
+  div.className = sender===currentUser ? "me":"them";
+  div.innerHTML = `<b>${sender}</b>: ${text} ${seen?"<span class='seen'>✓✓</span>":""}`;
+  if(media){
+    if(type==="image") div.innerHTML+=`<br><img src="/${media}" style="max-width:100%;border-radius:5px">`;
+    if(type==="video") div.innerHTML+=`<br><video src="/${media}" controls style="max-width:100%;border-radius:5px"></video>`;
+  }
   chatBox.appendChild(div);
-  chatBox.scrollTop = chatBox.scrollHeight;
-          }
+  chatBox.scrollTop=chatBox.scrollHeight;
+}
