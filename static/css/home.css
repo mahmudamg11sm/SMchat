@@ -1,1 +1,74 @@
+/* -------- Base -------- */
+body {
+  margin: 0;
+  padding: 0;
+  background: #0d0d0d;
+  color: white;
+  font-family: Arial, sans-serif;
+}
 
+/* -------- Tabs -------- */
+.tabs {
+  display: flex;
+  justify-content: space-around;
+  background: #111;
+  border-bottom: 1px solid gold;
+}
+
+.tabs a {
+  padding: 12px;
+  color: gold;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+/* -------- Chat Box -------- */
+.chat-box {
+  height: 300px;
+  overflow-y: auto;
+  border: 1px solid gold;
+  padding: 10px;
+  background: #151515;
+  margin: 10px;
+}
+
+/* -------- Messages -------- */
+.me {
+  text-align: right;
+  color: goldenrod;
+  margin: 5px;
+}
+
+.them {
+  text-align: left;
+  color: white;
+  margin: 5px;
+}
+
+/* -------- Message Input -------- */
+.chat-input {
+  display: flex;
+  padding: 10px;
+  gap: 10px;
+}
+
+.chat-input input {
+  flex: 1;
+  padding: 10px;
+  background: black;
+  color: white;
+  border: 1px solid gold;
+}
+
+.chat-input button {
+  background: gold;
+  color: black;
+  border: none;
+  padding: 10px 15px;
+  cursor: pointer;
+}
+
+/* -------- Golden Theme -------- */
+body.golden {
+  background: #1a1400;
+    }
