@@ -1,47 +1,22 @@
 {% extends "layout/base.html" %}
 {% block content %}
 
+<h2>Welcome, {{ current_user }}</h2>
+
+<!-- Tabs: All | Personal | Unread | Public -->
 <div class="tabs">
-  <button class="tab-btn active" data-tab="all">All</button>
-  <button class="tab-btn" data-tab="personal">Personal</button>
-  <button class="tab-btn" data-tab="unread">Unread</button>
-  <button class="tab-btn" data-tab="public">Public</button>
+  <button onclick="showTab('all')">All</button>
+  <button onclick="showTab('personal')">Personal</button>
+  <button onclick="showTab('unread')">Unread</button>
+  <button onclick="showTab('public')">Public</button>
 </div>
 
-<div id="feed-container">
-  {% for post in posts %}
-    <div class="post" data-id="{{ post.id }}">
-      <div class="post-header">
-        <b>{{ post.sender }}</b>
-        {% if post.is_admin %}<span class="badge admin">Admin</span>{% endif %}
-        {% if post.verified %}<span class="badge verified">✔️</span>{% endif %}
-      </div>
-      <div class="post-content">
-        {{ post.text }}
-        {% if post.media %}
-          {% if post.type=='image' %}
-            <img src="{{ url_for('uploads', filename=post.media) }}">
-          {% elif post.type=='video' %}
-            <video src="{{ url_for('uploads', filename=post.media) }}" controls></video>
-          {% endif %}
-        {% endif %}
-      </div>
-      <div class="post-actions">
-        <button class="like-btn">Like ({{ post.likes }})</button>
-        <button class="comment-btn">Comment ({{ post.comments|length }})</button>
-        <button class="share-btn">Share</button>
-      </div>
-      <div class="comments" style="display:none;">
-        {% for c in post.comments %}
-          <div><b>{{ c.commenter }}</b>: {{ c.text }}</div>
-        {% endfor %}
-        <input type="text" class="comment-input" placeholder="Write a comment...">
-      </div>
-    </div>
-  {% endfor %}
+<div id="tabContent" class="feed-box">
+  <!-- Messages / Posts appear here -->
+  <div class="post">Sample public post #1</div>
+  <div class="post">Sample personal post #2</div>
 </div>
 
 <script src="{{ url_for('static', filename='js/tabs.js') }}"></script>
-<script src="{{ url_for('static', filename='js/feed.js') }}"></script>
 
 {% endblock %}
