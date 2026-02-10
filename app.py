@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, s
 from flask_socketio import SocketIO, emit, join_room
 from werkzeug.utils import secure_filename
 import sqlite3
+from pathlib import Path
 
 # ------------------ APP SETUP ------------------
 app = Flask(__name__)
@@ -12,6 +13,11 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 IMAGE_EXT = {"png","jpg","jpeg","gif"}
 VIDEO_EXT = {"mp4","webm","mov"}
+
+# ------------------ UPLOAD FOLDERS ------------------
+Path(app.config["UPLOAD_FOLDER"]).mkdir(parents=True, exist_ok=True)
+Path(f"{app.config['UPLOAD_FOLDER']}/images").mkdir(parents=True, exist_ok=True)
+Path(f"{app.config['UPLOAD_FOLDER']}/avatars").mkdir(parents=True, exist_ok=True)
 
 # ------------------ DATABASE ------------------
 if not os.path.exists("instance"):
@@ -125,8 +131,7 @@ def edit_profile():
         file = request.files.get("avatar")
         if file and file.filename:
             name = secure_filename(file.filename)
-            path = f"static/uploads/{name}"
-            os.makedirs("static/uploads", exist_ok=True)
+            path = os.path.join(app.config["UPLOAD_FOLDER"], name)
             file.save(path)
             avatar = path
         c.execute("""
