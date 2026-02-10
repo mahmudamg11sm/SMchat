@@ -1,55 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>SMchat</title>
-
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
-
+<meta charset="UTF-8">
+<title>SMchat</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
-<body>
+<body class="{{ 'dark' if theme=='dark' else 'gold' if theme=='gold' else '' }}">
 
-  <!-- ===== TOP BAR ===== -->
-  <div class="topbar">
-    <div class="logo">SMchat</div>
+<!-- TopBar -->
+<div class="topbar">
+  <img src="{{ url_for('static', filename='images/logo.png') }}" class="logo">
+  <span class="title">SMchat</span>
+  <button id="menuBtn">≡</button>
+</div>
 
-    <!-- THEME TOGGLE (ANAN NE MATSAYINSA) -->
-    <div class="theme-toggle">
-      <button id="darkBtn" title="Dark mode">🌙</button>
-      <button id="goldBtn" title="Golden mode">🟡</button>
-    </div>
-  </div>
+<!-- Theme Toggle -->
+<div class="theme-toggle">
+  <button id="darkBtn">🌙</button>
+  <button id="goldBtn">🟡</button>
+</div>
 
-  <!-- ===== MAIN CONTENT ===== -->
-  <main>
-    {% block content %}{% endblock %}
-  </main>
+<!-- Main Content -->
+<div class="main-content">
+  {% block content %}{% endblock %}
+</div>
 
-  <!-- ===== JS (KASAN BODY) ===== -->
-  <script>
-    const body = document.body;
+<!-- BottomNav -->
+<div class="bottom-nav">
+  <button><img src="{{ url_for('static', filename='images/icons/home.png') }}"></button>
+  <button><img src="{{ url_for('static', filename='images/icons/public.png') }}"></button>
+  <button><img src="{{ url_for('static', filename='images/icons/notifications.png') }}"></button>
+  <button><img src="{{ url_for('static', filename='images/icons/search.png') }}"></button>
+  <button><img src="{{ url_for('static', filename='images/icons/users.png') }}"></button>
+  <button><img src="{{ url_for('static', filename='images/icons/info.png') }}"></button>
+</div>
 
-    document.getElementById("darkBtn").onclick = function () {
-      body.classList.remove("gold");
-      body.classList.toggle("dark");
-    };
+<script>
+const body=document.body;
+document.getElementById("darkBtn").onclick=()=>{body.classList.remove("gold"); body.classList.toggle("dark");};
+document.getElementById("goldBtn").onclick=()=>{body.classList.remove("dark"); body.classList.toggle("gold");};
+</script>
 
-    document.getElementById("goldBtn").onclick = function () {
-      body.classList.remove("dark");
-      body.classList.toggle("gold");
-    };
-  </script>
-
-  <!-- ===== BOTTOM NAV ===== -->
-<nav class="bottom-nav">
-  <a href="/home" class="nav-item">🛖</a>
-  <a href="/public" class="nav-item">🌐</a>
-  <a href="/notifications" class="nav-item">🔔</a>
-  <a href="/search" class="nav-item">🔍</a>
-  <a href="/users" class="nav-item">👥</a>
-  <a href="/info" class="nav-item">ℹ️</a>
-    </nav>
-  
 </body>
-    </html>
+</html>
