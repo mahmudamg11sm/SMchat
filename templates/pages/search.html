@@ -1,26 +1,30 @@
 {% extends "layout/base.html" %}
 {% block content %}
 
-<h2>Search User</h2>
+<div class="chat-header">
+  <strong>{{ other.username }}</strong>
+  {% if other.is_admin %}
+    <span class="badge admin">ADMIN</span>
+  {% endif %}
+</div>
 
-<form method="post">
-  <input
-    type="text"
-    name="username"
-    placeholder="Enter username"
-    required
-  >
-  <button type="submit">Search</button>
+<div class="chat-box" id="chatBox">
+  {% for m in messages %}
+    <div class="{% if m.author_id == current_user.id %}me{% else %}them{% endif %}">
+      {{ m.content }}
+      {% if m.author_id == current_user.id %}
+        <span class="seen">✓✓</span>
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
+
+<form method="post" class="chat-form">
+  <input type="text" name="text" placeholder="Type a message…" required>
+  <button type="submit">Send</button>
 </form>
 
-{% if result %}
-  <div style="margin-top:20px">
-    <a href="/chat/{{ result.username }}">
-      Chat with {{ result.username }}
-    </a>
-  </div>
-{% elif searched %}
-  <p>User not found</p>
-{% endif %}
+<div id="typing">typing…</div>
 
+<script src="/static/js/chat.js"></script>
 {% endblock %}
