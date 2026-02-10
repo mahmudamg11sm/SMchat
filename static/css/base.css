@@ -61,3 +61,38 @@ body.gold .topbar {
   background: #1a1400;
   border-color: gold;
 }
+
+/* ===== BOTTOM NAV ===== */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 55px;
+  background: #111;
+  border-top: 1px solid gold;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.bottom-nav .nav-item {
+  font-size: 22px;
+  text-decoration: none;
+  color: gold;
+}
+
+body.dark .bottom-nav {
+  background: #000;
+  border-color: #333;
+}
+
+body.gold .bottom-nav {
+  background: #1a1400;
+  border-color: gold;
+}
+
+/* ===== SPACE FOR CONTENT ===== */
+main {
+  padding-bottom: 70px;
+}
