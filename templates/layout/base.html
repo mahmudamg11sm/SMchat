@@ -1,47 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>SMchat</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
-<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <meta charset="UTF-8">
+  <title>SMchat</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
 </head>
-<body class="{{ 'dark' if theme=='dark' else 'gold' if theme=='gold' else '' }}">
+<body>
+  <!-- THEME TOGGLE -->
+  <div class="theme-toggle">
+    <button id="darkBtn">🌙</button>
+    <button id="goldBtn">🟡</button>
+  </div>
 
-<!-- TopBar -->
-<div class="topbar">
-  <img src="{{ url_for('static', filename='images/logo.png') }}" class="logo">
-  <span class="title">SMchat</span>
-  <button id="menuBtn">≡</button>
-</div>
+  <!-- NAVBAR TOP -->
+  {% include 'layout/navbar.html' %}
 
-<!-- Theme Toggle -->
-<div class="theme-toggle">
-  <button id="darkBtn">🌙</button>
-  <button id="goldBtn">🟡</button>
-</div>
+  <!-- MAIN CONTENT -->
+  <div class="content">
+    {% block content %}{% endblock %}
+  </div>
 
-<!-- Main Content -->
-<div class="main-content">
-  {% block content %}{% endblock %}
-</div>
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <img src="{{ url_for('static', filename='images/icons/home.png') }}">
+    <img src="{{ url_for('static', filename='images/icons/public.png') }}">
+    <img src="{{ url_for('static', filename='images/icons/notifications.png') }}">
+    <img src="{{ url_for('static', filename='images/icons/search.png') }}">
+    <img src="{{ url_for('static', filename='images/icons/users.png') }}">
+    <img src="{{ url_for('static', filename='images/icons/info.png') }}">
+  </div>
 
-<!-- BottomNav -->
-<div class="bottom-nav">
-  <button><img src="{{ url_for('static', filename='images/icons/home.png') }}"></button>
-  <button><img src="{{ url_for('static', filename='images/icons/public.png') }}"></button>
-  <button><img src="{{ url_for('static', filename='images/icons/notifications.png') }}"></button>
-  <button><img src="{{ url_for('static', filename='images/icons/search.png') }}"></button>
-  <button><img src="{{ url_for('static', filename='images/icons/users.png') }}"></button>
-  <button><img src="{{ url_for('static', filename='images/icons/info.png') }}"></button>
-</div>
-
-<script>
-const body=document.body;
-document.getElementById("darkBtn").onclick=()=>{body.classList.remove("gold"); body.classList.toggle("dark");};
-document.getElementById("goldBtn").onclick=()=>{body.classList.remove("dark"); body.classList.toggle("gold");};
-</script>
-
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/tabs.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/feed.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
 </body>
-</html>
+  </html>
