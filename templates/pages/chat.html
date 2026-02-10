@@ -1,30 +1,50 @@
 {% extends "layout/base.html" %}
 {% block content %}
 
-<div class="chat-header">
-  <strong>{{ other.username }}</strong>
-  {% if other.is_admin %}
-    <span class="badge admin">ADMIN</span>
-  {% endif %}
-</div>
+<div class="chat-container">
 
-<div class="chat-box" id="chatBox">
-  {% for m in messages %}
-    <div class="{% if m.author_id == current_user.id %}me{% else %}them{% endif %}">
-      {{ m.content }}
-      {% if m.author_id == current_user.id %}
-        <span class="seen">✓✓</span>
+  <div class="chat-header">
+    <div class="avatar">👤</div>
+    <div class="chat-info">
+      <div class="chat-name">{{ username }}</div>
+      <div id="typing"></div>
+    </div>
+    <div class="chat-badges">
+      {% if is_admin %}
+        <span class="badge admin">Admin</span>
+      {% endif %}
+      {% if is_verified %}
+        <span class="badge verified">✔️</span>
       {% endif %}
     </div>
-  {% endfor %}
+  </div>
+
+  <div class="chat-box" id="chat-box">
+    {% for msg in messages %}
+      <div class="{{ 'me' if msg.sender==current_user else 'them' }}">
+        <span class="sender">{{ msg.sender }}</span>: 
+        {% if msg.type=='text' %}
+          {{ msg.text }}
+        {% elif msg.type=='image' %}
+          <img src="{{ url_for('uploads', filename=msg.media_url) }}">
+        {% elif msg.type=='video' %}
+          <video src="{{ url_for('uploads', filename=msg.media_url) }}" controls></video>
+        {% endif %}
+        {% if msg.seen %}
+          <span class="seen">✓✓</span>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+
+  <form class="chat-form" id="chat-form">
+    <input type="text" id="msg" placeholder="Type a message...">
+    <button type="submit">Send</button>
+    <input type="file" id="media">
+  </form>
+
 </div>
 
-<form method="post" class="chat-form">
-  <input type="text" name="text" placeholder="Type a message…" required>
-  <button type="submit">Send</button>
-</form>
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
 
-<div id="typing">typing…</div>
-
-<script src="/static/js/chat.js"></script>
 {% endblock %}
