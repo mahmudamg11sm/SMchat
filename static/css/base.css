@@ -1,14 +1,70 @@
-body{font-family:sans-serif;margin:0;padding:0;background:#111;color:#fff;}
-body.dark{background:#000;color:#ccc;}
-body.gold{background:#111;color:goldenrod;}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px;background:#222;}
-.topbar .logo{width:30px;height:30px;}
-.topbar .title{font-weight:bold;color:gold;}
-.bottom-nav{display:flex;justify-content:space-around;position:fixed;bottom:0;width:100%;background:#222;padding:5px;}
-.bottom-nav button{background:none;border:none;}
-.bottom-nav img{width:25px;height:25px;}
-.theme-toggle{position:fixed;top:50px;right:10px;}
-.tabs{display:flex;gap:5px;margin:10px 0;}
-.tabs button{padding:5px 10px;border:none;border-radius:5px;background:gold;color:#111;cursor:pointer;}
-.feed-box{height:300px;overflow-y:auto;border:1px solid gold;padding:10px;border-radius:5px;}
-.post{padding:5px;margin-bottom:5px;border-bottom:1px solid #444;}
+/* GLOBAL STYLES */
+body {
+    font-family: sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #111;
+    color: #fff;
+}
+
+/* DARK & GOLDEN THEMES */
+body.dark {
+    background: #000;
+    color: #ccc;
+}
+
+body.gold {
+    background: #222;
+    color: gold;
+}
+
+/* BUTTONS */
+button {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    opacity: 0.8;
+}
+
+/* INPUTS */
+input[type=text], input[type=password], input[type=file] {
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #555;
+    margin: 5px 0;
+    width: 100%;
+}
+
+/* BADGES */
+.badge.admin {
+    background: gold;
+    color: #111;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+}
+
+.badge.verified {
+    background: #0af;
+    color: #111;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+}
+
+/* CHAT SEEN & TYPING */
+.seen {
+    font-size: 10px;
+    margin-left: 5px;
+    color: gold;
+}
+
+#typing {
+    font-size: 12px;
+    color: #aaa;
+    display: none;
+  }
