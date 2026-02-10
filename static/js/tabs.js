@@ -1,13 +1,13 @@
-function showTab(tab){
-  const feed=document.getElementById("tabContent");
-  feed.innerHTML="";
-  if(tab==="all"){
-    feed.innerHTML+="<div class='post'>All messages...</div>";
-  }else if(tab==="personal"){
-    feed.innerHTML+="<div class='post'>Personal messages...</div>";
-  }else if(tab==="unread"){
-    feed.innerHTML+="<div class='post'>Unread messages...</div>";
-  }else if(tab==="public"){
-    feed.innerHTML+="<div class='post'>Public posts...</div>";
-  }
-}
+// ALL / PERSONAL / UNREAD / PUBLIC TABS
+const tabs = document.querySelectorAll(".top-tabs div");
+const views = document.querySelectorAll(".tab-view");
+
+tabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+        tabs.forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+
+        const target = tab.dataset.target;
+        views.forEach(v => v.style.display = v.id===target ? "block" : "none");
+    });
+});
