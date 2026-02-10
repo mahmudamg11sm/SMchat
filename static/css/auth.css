@@ -1,1 +1,28 @@
+/* LOGIN / REGISTER */
+.auth-container {
+    max-width: 400px;
+    margin: 80px auto;
+    padding: 20px;
+    background: #222;
+    border-radius: 10px;
+    text-align: center;
+}
 
+.auth-container h2 {
+    color: gold;
+    margin-bottom: 20px;
+}
+
+.auth-container form {
+    display: flex;
+    flex-direction: column;
+}
+
+.auth-container input {
+    margin-bottom: 15px;
+}
+
+.auth-container button {
+    background: gold;
+    color: #111;
+}
