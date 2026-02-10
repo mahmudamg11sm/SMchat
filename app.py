@@ -1,34 +1,34 @@
 import os
-from flask import Flask, render_template, request, redirect, session, url_for, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory
 from flask_socketio import SocketIO, emit, join_room
 from werkzeug.utils import secure_filename
 import sqlite3
 
+# ------------------ APP SETUP ------------------
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "smchat-secret"
+app.config["UPLOAD_FOLDER"] = "static/uploads"
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-UPLOAD_FOLDER = "static/uploads"
-os.makedirs(f"{UPLOAD_FOLDER}/images", exist_ok=True)
-os.makedirs(f"{UPLOAD_FOLDER}/videos", exist_ok=True)
-os.makedirs(f"{UPLOAD_FOLDER}/avatars", exist_ok=True)
+IMAGE_EXT = {"png","jpg","jpeg","gif"}
+VIDEO_EXT = {"mp4","webm","mov"}
 
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+# ------------------ DATABASE ------------------
+if not os.path.exists("instance"):
+    os.makedirs("instance")
 
-# Database
 db_path = "instance/database.db"
-os.makedirs("instance", exist_ok=True)
 db = sqlite3.connect(db_path, check_same_thread=False)
 c = db.cursor()
 
-# Tables
+# Users table
 c.execute("""
 CREATE TABLE IF NOT EXISTS users(
     username TEXT PRIMARY KEY,
     password TEXT
 )
 """)
-
+# Profiles table
 c.execute("""
 CREATE TABLE IF NOT EXISTS profiles(
     username TEXT PRIMARY KEY,
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS profiles(
     bio TEXT
 )
 """)
-
+# Messages table
 c.execute("""
 CREATE TABLE IF NOT EXISTS messages(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,53 +47,65 @@ CREATE TABLE IF NOT EXISTS messages(
     media_url TEXT
 )
 """)
+# Posts table (public feed)
+c.execute("""
+CREATE TABLE IF NOT EXISTS posts(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user TEXT,
+    content TEXT
+)
+""")
 db.commit()
 
+# ------------------ SESSION USERS ------------------
 USERS = {}  # sid -> username
 
-# ---------------- ROUTES ----------------
+# ------------------ ROUTES ------------------
 
-@app.route("/", methods=["GET"])
+# Home / main
+@app.route("/")
 def index():
-    if "user" in session:
-        return redirect("/home")
-    return redirect("/login")
+    if "user" not in session:
+        return redirect("/login")
+    return render_template("pages/home.html")
 
+# Login
 @app.route("/login", methods=["GET","POST"])
 def login():
     if request.method=="POST":
         username = request.form.get("username")
         password = request.form.get("password")
         c.execute("SELECT password FROM users WHERE username=?", (username,))
-        p = c.fetchone()
-        if p and p[0]==password:
-            session["user"]=username
-            return redirect("/home")
-        return render_template("auth/login.html", error="Invalid credentials")
+        row = c.fetchone()
+        if row and row[0] == password:
+            session["user"] = username
+            return redirect("/")
+        else:
+            return render_template("auth/login.html", error="Invalid credentials")
     return render_template("auth/login.html")
 
+# Register
 @app.route("/register", methods=["GET","POST"])
 def register():
     if request.method=="POST":
-        username=request.form.get("username")
-        password=request.form.get("password")
-        c.execute("INSERT OR IGNORE INTO users(username,password) VALUES(?,?)",(username,password))
-        db.commit()
-        session["user"]=username
-        return redirect("/home")
+        username = request.form.get("username")
+        password = request.form.get("password")
+        try:
+            c.execute("INSERT INTO users(username,password) VALUES(?,?)",(username,password))
+            db.commit()
+            session["user"] = username
+            return redirect("/")
+        except:
+            return render_template("auth/register.html", error="Username exists")
     return render_template("auth/register.html")
 
+# Logout
 @app.route("/logout")
 def logout():
     session.pop("user", None)
     return redirect("/login")
 
-@app.route("/home")
-def home():
-    if "user" not in session:
-        return redirect("/login")
-    return render_template("pages/home.html", current_user=session["user"], theme="dark")
-
+# Profile
 @app.route("/profile/<username>")
 def profile(username):
     c.execute("SELECT avatar,bio FROM profiles WHERE username=?", (username,))
@@ -102,85 +114,79 @@ def profile(username):
     bio = p[1] if p else ""
     return render_template("pages/profile.html", username=username, avatar=avatar, bio=bio)
 
+# Edit profile
 @app.route("/edit-profile", methods=["GET","POST"])
 def edit_profile():
     if "user" not in session:
         return redirect("/login")
     if request.method=="POST":
         bio = request.form.get("bio","")
-        avatar=None
-        file=request.files.get("avatar")
+        avatar = None
+        file = request.files.get("avatar")
         if file and file.filename:
             name = secure_filename(file.filename)
-            path=f"{UPLOAD_FOLDER}/avatars/{name}"
+            path = f"static/uploads/{name}"
+            os.makedirs("static/uploads", exist_ok=True)
             file.save(path)
-            avatar=path
+            avatar = path
         c.execute("""
         INSERT INTO profiles(username,avatar,bio)
         VALUES(?,?,?)
-        ON CONFLICT(username)
-        DO UPDATE SET avatar=excluded.avatar,bio=excluded.bio
+        ON CONFLICT(username) DO UPDATE SET avatar=excluded.avatar,bio=excluded.bio
         """,(session["user"],avatar,bio))
         db.commit()
         return redirect(f"/profile/{session['user']}")
-    return render_template("pages/edit_profile.html")
+    c.execute("SELECT bio FROM profiles WHERE username=?",(session["user"],))
+    bio_row = c.fetchone()
+    bio = bio_row[0] if bio_row else ""
+    return render_template("pages/edit_profile.html", bio=bio)
 
+# Upload route for images/videos
 @app.route("/uploads/<path:filename>")
 def uploads(filename):
     return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
-# ---------------- SOCKET ----------------
+# Public posts feed
+@app.route("/public")
+def public():
+    c.execute("SELECT user,content FROM posts ORDER BY id DESC")
+    posts = c.fetchall()
+    return render_template("pages/public.html", posts=posts)
 
-@socketio.on("join")
-def join(data):
-    username=session.get("user")
-    if not username:
-        return
-    USERS[request.sid]=username
-    join_room(username)
-    emit("users_list", list(USERS.values()), broadcast=True)
+# Search user
+@app.route("/search")
+def search():
+    q = request.args.get("q","")
+    result = None
+    if q:
+        c.execute("SELECT username FROM users WHERE username=?",(q,))
+        row = c.fetchone()
+        if row:
+            result = {"username": row[0]}
+    return render_template("pages/search.html", result=result)
+
+# ------------------ SOCKET.IO ------------------
+@socketio.on("connect")
+def on_connect():
+    print("Client connected")
+
+@socketio.on("disconnect")
+def on_disconnect():
+    sid_user = USERS.pop(request.sid, None)
+    print(f"{sid_user} disconnected")
 
 @socketio.on("private_message")
 def private_message(data):
-    sender=USERS.get(request.sid)
-    to=data["to"]
-    text=data.get("msg","")
-    media=data.get("media",None)
-    media_url=None
-    mtype="text"
-    if media:
-        file=media
-        name=secure_filename(file["name"])
-        ext=name.split(".")[-1].lower()
-        folder="images" if ext in {"png","jpg","jpeg","gif"} else "videos"
-        path=f"{UPLOAD_FOLDER}/{folder}/{name}"
-        with open(path,"wb") as f:
-            f.write(bytes(file["data"]))
-        media_url=path
-        mtype="image" if folder=="images" else "video"
-    c.execute("INSERT INTO messages(sender,receiver,text,type,media_url) VALUES(?,?,?,?,?)",
-             (sender,to,text,mtype,media_url))
+    sender = session.get("user")
+    receiver = data.get("to")
+    text = data.get("msg")
+    if not sender or not receiver: return
+    # Save message
+    c.execute("INSERT INTO messages(sender,receiver,text,type) VALUES(?,?,?,?)",(sender,receiver,text,"text"))
     db.commit()
-    emit("private_message",{"from":sender,"msg":text,"type":mtype,"media_url":media_url}, room=to)
-    emit("private_message",{"from":sender,"msg":text,"type":mtype,"media_url":media_url}, room=sender)
+    emit("private_message", {"from":sender,"msg":text,"type":"text"}, broadcast=True)
 
-@socketio.on("typing")
-def typing(data):
-    to = data.get("to")
-    if to and to in USERS.values():
-        emit("typing", {"from":USERS.get(request.sid)}, room=to)
-
-@socketio.on("seen")
-def seen(data):
-    to=data.get("to")
-    emit("seen", {"to":USERS.get(request.sid)}, room=to)
-
-@socketio.on("disconnect")
-def disconnect():
-    USERS.pop(request.sid,None)
-    emit("users_list", list(USERS.values()), broadcast=True)
-
-# ---------------- RUN ----------------
+# ------------------ MAIN ------------------
 if __name__=="__main__":
     port=int(os.environ.get("PORT",10000))
     socketio.run(app, host="0.0.0.0", port=port)
