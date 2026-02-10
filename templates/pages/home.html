@@ -1,5 +1,47 @@
 {% extends "layout/base.html" %}
 {% block content %}
-<h2>Home</h2>
-<p>Personal chats & unread messages</p>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('all')">All</button>
+  <button class="tab" onclick="showTab('personal')">Personal</button>
+  <button class="tab" onclick="showTab('unread')">Unread</button>
+  <button class="tab" onclick="showTab('public')">Public</button>
+</div>
+
+<div class="chat-list">
+
+  <div class="chat-item" data-tab="personal">
+    <div class="avatar">👤</div>
+    <div class="chat-info">
+      <div class="chat-name">Aliyu</div>
+      <div class="chat-last">Last message here</div>
+    </div>
+    <div class="chat-meta">
+      <span class="unread">2</span>
+    </div>
+  </div>
+
+  <div class="chat-item" data-tab="unread">
+    <div class="avatar">👤</div>
+    <div class="chat-info">
+      <div class="chat-name">Zainab</div>
+      <div class="chat-last">Hey, are you there?</div>
+    </div>
+    <div class="chat-meta">
+      <span class="unread">1</span>
+    </div>
+  </div>
+
+  <div class="chat-item" data-tab="public">
+    <div class="avatar">🌐</div>
+    <div class="chat-info">
+      <div class="chat-name">Public Channel</div>
+      <div class="chat-last">Latest public post</div>
+    </div>
+  </div>
+
+</div>
+
+<script src="{{ url_for('static', filename='js/tabs.js') }}"></script>
+
 {% endblock %}
