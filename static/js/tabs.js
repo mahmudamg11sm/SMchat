@@ -1,19 +1,13 @@
-const tabs = document.querySelectorAll(".tab-btn");
-const posts = document.querySelectorAll(".post");
-
-tabs.forEach(tab=>{
-  tab.onclick = () => {
-    document.querySelector(".tab-btn.active").classList.remove("active");
-    tab.classList.add("active");
-
-    const type = tab.dataset.tab;
-
-    posts.forEach(p=>{
-      if(type==="all") p.style.display = "block";
-      else if(type==="personal" && p.dataset.sender==="{{ current_user }}") p.style.display="block";
-      else if(type==="unread" && !p.dataset.seen) p.style.display="block";
-      else if(type==="public") p.style.display="block";
-      else p.style.display="none";
-    });
+function showTab(tab){
+  const feed=document.getElementById("tabContent");
+  feed.innerHTML="";
+  if(tab==="all"){
+    feed.innerHTML+="<div class='post'>All messages...</div>";
+  }else if(tab==="personal"){
+    feed.innerHTML+="<div class='post'>Personal messages...</div>";
+  }else if(tab==="unread"){
+    feed.innerHTML+="<div class='post'>Unread messages...</div>";
+  }else if(tab==="public"){
+    feed.innerHTML+="<div class='post'>Public posts...</div>";
   }
-});
+}
