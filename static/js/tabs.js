@@ -1,14 +1,15 @@
-document.querySelectorAll(".tabs a").forEach(tab => {
-  tab.addEventListener("click", e => {
-    e.preventDefault();
-    const target = tab.dataset.tab;
+function showTab(tab) {
+  document.querySelectorAll(".tab").forEach(t => {
+    t.classList.remove("active");
+  });
 
-    document.querySelectorAll(".tab-view").forEach(v => {
-      v.style.display = "none";
-    });
-
-    if (target) {
-      document.getElementById(target).style.display = "block";
+  document.querySelectorAll(".chat-item").forEach(item => {
+    if (tab === "all" || item.dataset.tab === tab) {
+      item.style.display = "flex";
+    } else {
+      item.style.display = "none";
     }
   });
-});
+
+  event.target.classList.add("active");
+}
