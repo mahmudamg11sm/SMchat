@@ -1,0 +1,9 @@
+{% extends "layout/base.html" %}
+{% block content %}
+<h2>Edit Profile</h2>
+<form method="post" enctype="multipart/form-data">
+  <input type="text" name="bio" placeholder="Bio" value="{{ bio }}">
+  <input type="file" name="avatar">
+  <button type="submit">Save</button>
+</form>
+{% endblock %}
