@@ -1,91 +1,55 @@
-/* ===== TABS ===== */
-.tabs {
+.chat-container {
   display: flex;
-  justify-content: space-around;
+  flex-direction: column;
+  height: 80vh;
+}
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
   border-bottom: 1px solid gold;
+}
+
+.chat-box {
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
   background: #111;
 }
 
-.tabs .tab {
+.chat-form {
+  display: flex;
+  gap: 5px;
+  padding: 5px;
+  border-top: 1px solid gold;
+}
+
+.chat-form input[type=text] {
   flex: 1;
-  padding: 12px;
-  background: none;
+  padding: 10px;
+  border-radius: 5px;
   border: none;
-  color: gold;
-  font-weight: bold;
+}
+
+.chat-form button {
+  padding: 10px;
+  background: gold;
+  border: none;
+  border-radius: 5px;
   cursor: pointer;
 }
 
-.tabs .tab.active {
-  border-bottom: 3px solid gold;
+.chat-form input[type=file] {
+  display: none;
 }
 
-/* ===== CHAT LIST ===== */
-.chat-list {
-  padding: 0;
-  margin: 0;
-}
+.me { text-align: right; color: goldenrod; margin:5px; }
+.them { text-align: left; color:white; margin:5px; }
 
-.chat-item {
-  display: flex;
-  align-items: center;
-  padding: 12px;
-  border-bottom: 1px solid #222;
-  cursor: pointer;
-}
+.badge.admin { background: gold; color: #111; padding: 2px 6px; border-radius: 4px; font-size:10px; }
+.badge.verified { background: #0f0; color: #111; padding:2px 6px; border-radius:4px; font-size:10px; }
+.seen { font-size:10px; color: gold; margin-left:5px; }
 
-.chat-item:hover {
-  background: #1a1a1a;
-}
-
-.avatar {
-  width: 45px;
-  height: 45px;
-  border-radius: 50%;
-  background: gold;
-  color: #111;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  margin-right: 10px;
-}
-
-.chat-info {
-  flex: 1;
-}
-
-.chat-name {
-  font-weight: bold;
-}
-
-.chat-last {
-  font-size: 13px;
-  color: #aaa;
-}
-
-.chat-meta {
-  text-align: right;
-}
-
-.unread {
-  background: gold;
-  color: #111;
-  font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 12px;
-}
-
-/* ===== DARK MODE ===== */
-body.dark .tabs {
-  background: #000;
-}
-
-body.dark .chat-item {
-  border-color: #333;
-}
-
-/* ===== GOLD MODE ===== */
-body.gold .tabs {
-  background: #1a1400;
-  }
+#typing { font-size:12px; color:#aaa; display:none; }
