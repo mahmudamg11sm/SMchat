@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory
+from flask import Flask, render_template, request, redirect, session, send_from_directory
 from flask_socketio import SocketIO, emit
 from werkzeug.utils import secure_filename
 import sqlite3
@@ -7,17 +7,18 @@ import sqlite3
 # ------------------ APP SETUP ------------------
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "smchat-secret"
-app.config["UPLOAD_FOLDER"] = "static/uploads"
-socketio = SocketIO(app, cors_allowed_origins="*")
-
+UPLOAD_FOLDER = "static/uploads"
 IMAGE_EXT = {"png","jpg","jpeg","gif"}
 VIDEO_EXT = {"mp4","webm","mov"}
 
-# Ensure upload folders exist
-image_path = os.path.join(app.config["UPLOAD_FOLDER"], "images")
-video_path = os.path.join(app.config["UPLOAD_FOLDER"], "videos")
-os.makedirs(image_path, exist_ok=True)
-os.makedirs(video_path, exist_ok=True)
+IMAGE_FOLDER = os.path.join(UPLOAD_FOLDER, "images")
+VIDEO_FOLDER = os.path.join(UPLOAD_FOLDER, "videos")
+
+# Ensure folders exist
+for folder in [UPLOAD_FOLDER, IMAGE_FOLDER, VIDEO_FOLDER]:
+    os.makedirs(folder, exist_ok=True)
+
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # ------------------ DATABASE ------------------
 if not os.path.exists("instance"):
@@ -53,7 +54,7 @@ CREATE TABLE IF NOT EXISTS messages(
     media_url TEXT
 )
 """)
-# Posts table (public feed)
+# Posts table
 c.execute("""
 CREATE TABLE IF NOT EXISTS posts(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -68,7 +69,7 @@ USERS = {}  # sid -> username
 
 # ------------------ ROUTES ------------------
 
-# Home / main
+# Home
 @app.route("/")
 def index():
     if "user" not in session:
@@ -86,8 +87,7 @@ def login():
         if row and row[0] == password:
             session["user"] = username
             return redirect("/")
-        else:
-            return render_template("auth/login.html", error="Invalid credentials")
+        return render_template("auth/login.html", error="Invalid credentials")
     return render_template("auth/login.html")
 
 # Register
@@ -131,7 +131,13 @@ def edit_profile():
         file = request.files.get("avatar")
         if file and file.filename:
             name = secure_filename(file.filename)
-            path = os.path.join(image_path, name)
+            ext = name.rsplit(".", 1)[-1].lower()
+            if ext in IMAGE_EXT:
+                path = os.path.join(IMAGE_FOLDER, name)
+            elif ext in VIDEO_EXT:
+                path = os.path.join(VIDEO_FOLDER, name)
+            else:
+                path = os.path.join(UPLOAD_FOLDER, name)
             file.save(path)
             avatar = path
         c.execute("""
@@ -146,12 +152,12 @@ def edit_profile():
     bio = bio_row[0] if bio_row else ""
     return render_template("pages/edit_profile.html", bio=bio)
 
-# Upload route for images/videos
+# Uploads serving
 @app.route("/uploads/<path:filename>")
 def uploads(filename):
-    return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
+    return send_from_directory(UPLOAD_FOLDER, filename)
 
-# Public posts feed
+# Public posts
 @app.route("/public")
 def public():
     c.execute("SELECT user,content FROM posts ORDER BY id DESC")
@@ -186,7 +192,6 @@ def private_message(data):
     receiver = data.get("to")
     text = data.get("msg")
     if not sender or not receiver: return
-    # Save message
     c.execute("INSERT INTO messages(sender,receiver,text,type) VALUES(?,?,?,?)",(sender,receiver,text,"text"))
     db.commit()
     emit("private_message", {"from":sender,"msg":text,"type":"text"}, broadcast=True)
