@@ -1,13 +1,26 @@
 {% extends "layout/base.html" %}
 {% block content %}
-<form method="get">
-    <input name="q" placeholder="Search username">
-    <button>Search</button>
+
+<h2>Search User</h2>
+
+<form method="post">
+  <input
+    type="text"
+    name="username"
+    placeholder="Enter username"
+    required
+  >
+  <button type="submit">Search</button>
 </form>
 
 {% if result %}
-<p>User found: {{ result.username }}</p>
-{% elif request.args.get("q") %}
-<p>No user found</p>
+  <div style="margin-top:20px">
+    <a href="/chat/{{ result.username }}">
+      Chat with {{ result.username }}
+    </a>
+  </div>
+{% elif searched %}
+  <p>User not found</p>
 {% endif %}
+
 {% endblock %}
