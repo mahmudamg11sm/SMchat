@@ -2,46 +2,46 @@
 {% block content %}
 
 <div class="tabs">
-  <button class="tab active" onclick="showTab('all')">All</button>
-  <button class="tab" onclick="showTab('personal')">Personal</button>
-  <button class="tab" onclick="showTab('unread')">Unread</button>
-  <button class="tab" onclick="showTab('public')">Public</button>
+  <button class="tab-btn active" data-tab="all">All</button>
+  <button class="tab-btn" data-tab="personal">Personal</button>
+  <button class="tab-btn" data-tab="unread">Unread</button>
+  <button class="tab-btn" data-tab="public">Public</button>
 </div>
 
-<div class="chat-list">
-
-  <div class="chat-item" data-tab="personal">
-    <div class="avatar">👤</div>
-    <div class="chat-info">
-      <div class="chat-name">Aliyu</div>
-      <div class="chat-last">Last message here</div>
+<div id="feed-container">
+  {% for post in posts %}
+    <div class="post" data-id="{{ post.id }}">
+      <div class="post-header">
+        <b>{{ post.sender }}</b>
+        {% if post.is_admin %}<span class="badge admin">Admin</span>{% endif %}
+        {% if post.verified %}<span class="badge verified">✔️</span>{% endif %}
+      </div>
+      <div class="post-content">
+        {{ post.text }}
+        {% if post.media %}
+          {% if post.type=='image' %}
+            <img src="{{ url_for('uploads', filename=post.media) }}">
+          {% elif post.type=='video' %}
+            <video src="{{ url_for('uploads', filename=post.media) }}" controls></video>
+          {% endif %}
+        {% endif %}
+      </div>
+      <div class="post-actions">
+        <button class="like-btn">Like ({{ post.likes }})</button>
+        <button class="comment-btn">Comment ({{ post.comments|length }})</button>
+        <button class="share-btn">Share</button>
+      </div>
+      <div class="comments" style="display:none;">
+        {% for c in post.comments %}
+          <div><b>{{ c.commenter }}</b>: {{ c.text }}</div>
+        {% endfor %}
+        <input type="text" class="comment-input" placeholder="Write a comment...">
+      </div>
     </div>
-    <div class="chat-meta">
-      <span class="unread">2</span>
-    </div>
-  </div>
-
-  <div class="chat-item" data-tab="unread">
-    <div class="avatar">👤</div>
-    <div class="chat-info">
-      <div class="chat-name">Zainab</div>
-      <div class="chat-last">Hey, are you there?</div>
-    </div>
-    <div class="chat-meta">
-      <span class="unread">1</span>
-    </div>
-  </div>
-
-  <div class="chat-item" data-tab="public">
-    <div class="avatar">🌐</div>
-    <div class="chat-info">
-      <div class="chat-name">Public Channel</div>
-      <div class="chat-last">Latest public post</div>
-    </div>
-  </div>
-
+  {% endfor %}
 </div>
 
 <script src="{{ url_for('static', filename='js/tabs.js') }}"></script>
+<script src="{{ url_for('static', filename='js/feed.js') }}"></script>
 
 {% endblock %}
