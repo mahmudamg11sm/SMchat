@@ -1,89 +1,40 @@
-/* -------- Base -------- */
-body {
-  margin: 0;
-  padding: 0;
-  background: #0d0d0d;
-  color: white;
-  font-family: Arial, sans-serif;
-}
-
-/* -------- Tabs -------- */
-.tabs {
-  display: flex;
-  justify-content: space-around;
-  background: #111;
+.chat-header {
+  padding: 10px;
   border-bottom: 1px solid gold;
 }
 
-.tabs a {
-  padding: 12px;
-  color: gold;
-  font-weight: bold;
-  text-decoration: none;
-}
-
-/* -------- Chat Box -------- */
-.chat-box {
-  height: 300px;
-  overflow-y: auto;
-  border: 1px solid gold;
-  padding: 10px;
-  background: #151515;
-  margin: 10px;
-}
-
-/* -------- Messages -------- */
-.me {
-  text-align: right;
-  color: goldenrod;
-  margin: 5px;
-}
-
-.them {
-  text-align: left;
-  color: white;
-  margin: 5px;
-}
-
-/* -------- Message Input -------- */
-.chat-input {
+.chat-form {
   display: flex;
-  padding: 10px;
-  gap: 10px;
+  gap: 5px;
 }
 
-.chat-input input {
+.chat-form input {
   flex: 1;
   padding: 10px;
-  background: black;
-  color: white;
-  border: 1px solid gold;
 }
 
-.chat-input button {
+.chat-form button {
   background: gold;
-  color: black;
   border: none;
-  padding: 10px 15px;
-  cursor: pointer;
-}
-
-.chat-item {
   padding: 10px;
-  border-bottom: 1px solid #333;
 }
 
-.chat-item a {
-  color: white;
-  text-decoration: none;
+.badge.admin {
+  background: gold;
+  color: #111;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
 }
 
-.chat-item.unread {
-  background: #1a1a1a;
-  border-left: 4px solid gold;
-  }
+.seen {
+  font-size: 10px;
+  margin-left: 5px;
+  color: gold;
+}
 
-/* -------- Golden Theme -------- */
-body.golden {
-  background: #1a1400;
-    }
+#typing {
+  font-size: 12px;
+  color: #aaa;
+  display: none;
+}
