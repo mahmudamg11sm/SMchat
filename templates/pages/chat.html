@@ -1,33 +1,15 @@
 {% extends "layout/base.html" %}
 {% block content %}
-
 <div class="chat-header">
-  <b id="chat-title">{{ chat_with }}</b>
+  <h3 id="chat-title">{{ chat_with }}</h3>
   <span id="typing"></span>
 </div>
 
-<div class="chat-box" id="chat-box">
-  {% for msg in messages %}
-    <div class="{% if msg.sender==current_user %}me{% else %}them{% endif %}">
-      <b>{{ msg.sender }}</b>: {{ msg.text }}
-      {% if msg.media %}
-        {% if msg.type=='image' %}
-          <img src="{{ url_for('uploads', filename=msg.media) }}">
-        {% elif msg.type=='video' %}
-          <video src="{{ url_for('uploads', filename=msg.media) }}" controls></video>
-        {% endif %}
-      {% endif %}
-      {% if msg.seen %}<span class="seen">✓✓</span>{% endif %}
-    </div>
-  {% endfor %}
-</div>
+<div id="messages" class="chat-box"></div>
 
-<div class="chat-form">
-  <input id="msg" placeholder="Write message...">
+<form class="chat-form" onsubmit="sendMessage(); return false;">
+  <input id="msg" type="text" placeholder="Type a message...">
+  <button type="submit">Send</button>
   <input type="file" id="media">
-  <button onclick="sendMsg()">Send</button>
-</div>
-
-<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
-
+</form>
 {% endblock %}
