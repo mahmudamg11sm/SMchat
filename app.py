@@ -1,222 +1,31 @@
-import os
-from flask import Flask, render_template, request, redirect, session, send_from_directory
-from flask_socketio import SocketIO, emit, join_room
-from werkzeug.utils import secure_filename
-import sqlite3
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager
+from config import Config
 
-# ================== APP ==================
-app = Flask(__name__)
-app.config["SECRET_KEY"] = "smchat-secret"
-socketio = SocketIO(app, cors_allowed_origins="*")
+db = SQLAlchemy()
+login_manager = LoginManager()
+login_manager.login_view = "auth.login"
 
-# ================== UPLOAD ==================
-UPLOAD_FOLDER = "static/uploads"
-os.makedirs(f"{UPLOAD_FOLDER}/images", exist_ok=True)
-os.makedirs(f"{UPLOAD_FOLDER}/videos", exist_ok=True)
-os.makedirs(f"{UPLOAD_FOLDER}/avatars", exist_ok=True)
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object(Config)
 
-IMAGE_EXT = {"png","jpg","jpeg","gif"}
-VIDEO_EXT = {"mp4","webm","mov"}
+    db.init_app(app)
+    login_manager.init_app(app)
 
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+    from routes.auth import auth_bp
+    from routes.pages import pages_bp
 
-# ================== DATABASE ==================
-def get_db():
-    return sqlite3.connect("chat.db", check_same_thread=False)
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(pages_bp)
 
-db = get_db()
-c = db.cursor()
+    with app.app_context():
+        db.create_all()
 
-# Users
-c.execute("""
-CREATE TABLE IF NOT EXISTS users(
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  username TEXT UNIQUE,
-  password TEXT
-)
-""")
+    return app
 
-# Messages
-c.execute("""
-CREATE TABLE IF NOT EXISTS messages(
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  sender TEXT,
-  channel TEXT,
-  text TEXT,
-  type TEXT,
-  media_url TEXT
-)
-""")
+app = create_app()
 
-# Profiles
-c.execute("""
-CREATE TABLE IF NOT EXISTS profiles(
-  username TEXT PRIMARY KEY,
-  avatar TEXT,
-  bio TEXT
-)
-""")
-
-# Roles / admin / verified
-c.execute("""
-CREATE TABLE IF NOT EXISTS roles(
-  username TEXT PRIMARY KEY,
-  admin INTEGER DEFAULT 0,
-  verified INTEGER DEFAULT 0
-)
-""")
-
-# Reports
-c.execute("""
-CREATE TABLE IF NOT EXISTS reports(
-  reporter TEXT,
-  reported TEXT,
-  reason TEXT
-)
-""")
-
-db.commit()
-
-# ================== MEMORY ==================
-USERS = {}   # sid -> username
-ROOMS = {"General"}
-
-# ================== ROUTES ==================
-@app.route("/")
-def index():
-    if "user" not in session:
-        return redirect("/login")
-    return render_template("index.html", username=session["user"])
-
-# ---- LOGIN ----
-@app.route("/login", methods=["GET","POST"])
-def login():
-    if request.method=="POST":
-        u = request.form["username"]
-        p = request.form["password"]
-        c.execute("SELECT * FROM users WHERE username=? AND password=?", (u,p))
-        if c.fetchone():
-            session["user"] = u
-            return redirect("/")
-        return "Invalid login"
-    return render_template("login.html")
-
-# ---- REGISTER ----
-@app.route("/register", methods=["GET","POST"])
-def register():
-    if request.method=="POST":
-        u = request.form["username"]
-        p = request.form["password"]
-        try:
-            c.execute("INSERT INTO users(username,password) VALUES(?,?)", (u,p))
-            db.commit()
-            return redirect("/login")
-        except:
-            return "Username already exists"
-    return render_template("register.html")
-
-@app.route("/logout")
-def logout():
-    session.pop("user", None)
-    return redirect("/login")
-
-# ---- UPLOADS ----
-@app.route("/uploads/<path:filename>")
-def uploads(filename):
-    return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
-
-# ---- PROFILE ----
-@app.route("/profile/<username>")
-def profile(username):
-    c.execute("SELECT avatar,bio FROM profiles WHERE username=?", (username,))
-    p = c.fetchone()
-    avatar = p[0] if p else None
-    bio = p[1] if p else ""
-    return render_template("profile.html", username=username, avatar=avatar, bio=bio)
-
-@app.route("/edit-profile", methods=["GET","POST"])
-def edit_profile():
-    if "user" not in session:
-        return redirect("/login")
-    if request.method=="POST":
-        bio = request.form.get("bio","")
-        avatar = None
-
-        file = request.files.get("avatar")
-        if file and file.filename:
-            name = secure_filename(file.filename)
-            path = f"static/uploads/avatars/{name}"
-            os.makedirs("static/uploads/avatars", exist_ok=True)
-            file.save(path)
-            avatar = path
-
-        c.execute("""
-        INSERT INTO profiles(username,avatar,bio)
-        VALUES(?,?,?)
-        ON CONFLICT(username)
-        DO UPDATE SET avatar=excluded.avatar,bio=excluded.bio
-        """,(session["user"],avatar,bio))
-        db.commit()
-        return redirect(f"/profile/{session['user']}")
-
-    return render_template("edit_profile.html")
-
-# ================== SOCKET ==================
-@socketio.on("join")
-def join(data):
-    username = data["username"]
-    USERS[request.sid] = username
-    room = data.get("room", "General")
-    join_room(room)
-    emit("system", f"{username} joined {room}", room=room)
-    emit("users_list", list(USERS.values()), broadcast=True)
-    emit("rooms_list", list(ROOMS), broadcast=True)
-
-@socketio.on("channel_message")
-def channel_message(data):
-    sender = USERS.get(request.sid)
-    channel = data["channel"]
-    text = data.get("text","")
-    media = data.get("media")
-
-    media_url = None
-    mtype = "text"
-
-    if media:
-        name = secure_filename(media["name"])
-        ext = name.split(".")[-1].lower()
-        if ext in IMAGE_EXT:
-            folder = "images"
-            mtype = "image"
-        elif ext in VIDEO_EXT:
-            folder = "videos"
-            mtype = "video"
-        else:
-            return
-        path = f"{UPLOAD_FOLDER}/{folder}/{name}"
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path,"wb") as f:
-            f.write(bytes(media["data"]))
-        media_url = path
-
-    c.execute("INSERT INTO messages(sender,channel,text,type,media_url) VALUES(?,?,?,?,?)",
-              (sender,channel,text,mtype,media_url))
-    db.commit()
-
-    emit("new_channel_message", {
-        "sender":sender,
-        "channel":channel,
-        "text":text,
-        "type":mtype,
-        "media_url":media_url
-    }, room=channel)
-
-@socketio.on("disconnect")
-def disconnect():
-    USERS.pop(request.sid, None)
-    emit("users_list", list(USERS.values()), broadcast=True)
-
-# ================== RUN ==================
-if __name__=="__main__":
-    port=int(os.environ.get("PORT",10000))
-    socketio.run(app, host="0.0.0.0", port=port)
+if __name__ == "__main__":
+    app.run(debug=True)
