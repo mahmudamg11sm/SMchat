@@ -1,15 +1,19 @@
-function showTab(tab) {
-  document.querySelectorAll(".tab").forEach(t => {
-    t.classList.remove("active");
-  });
+const tabs = document.querySelectorAll(".tab-btn");
+const posts = document.querySelectorAll(".post");
 
-  document.querySelectorAll(".chat-item").forEach(item => {
-    if (tab === "all" || item.dataset.tab === tab) {
-      item.style.display = "flex";
-    } else {
-      item.style.display = "none";
-    }
-  });
+tabs.forEach(tab=>{
+  tab.onclick = () => {
+    document.querySelector(".tab-btn.active").classList.remove("active");
+    tab.classList.add("active");
 
-  event.target.classList.add("active");
-}
+    const type = tab.dataset.tab;
+
+    posts.forEach(p=>{
+      if(type==="all") p.style.display = "block";
+      else if(type==="personal" && p.dataset.sender==="{{ current_user }}") p.style.display="block";
+      else if(type==="unread" && !p.dataset.seen) p.style.display="block";
+      else if(type==="public") p.style.display="block";
+      else p.style.display="none";
+    });
+  }
+});
