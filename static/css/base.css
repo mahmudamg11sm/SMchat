@@ -1,35 +1,33 @@
-/* ---------- DEFAULT ---------- */
+/* ===== RESET ===== */
+* {
+  box-sizing: border-box;
+}
+
 body {
-  background: #0d0d0d;
-  color: #fff;
-  font-family: Arial, sans-serif;
   margin: 0;
   padding: 0;
+  background: #0d0d0d;
+  color: #ffffff;
+  font-family: Arial, sans-serif;
 }
 
-/* ---------- DARK MODE ---------- */
-body.dark {
-  background: #000;
-  color: #ccc;
-}
-
-body.dark .chat-box {
+/* ===== TOP BAR ===== */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  border-bottom: 1px solid gold;
   background: #111;
-  border-color: #333;
 }
 
-/* ---------- GOLDEN MODE ---------- */
-body.gold {
-  background: #1a1400;
-  color: #f5e6a1;
+.logo {
+  font-size: 20px;
+  font-weight: bold;
+  color: gold;
 }
 
-body.gold .chat-box {
-  border: 1px solid gold;
-  background: #151000;
-}
-
-/* ---------- TOGGLE BUTTON ---------- */
+/* ===== THEME TOGGLE ===== */
 .theme-toggle {
   display: flex;
   gap: 10px;
@@ -40,4 +38,26 @@ body.gold .chat-box {
   border: none;
   font-size: 20px;
   cursor: pointer;
-    }
+}
+
+/* ===== DARK MODE ===== */
+body.dark {
+  background: #000;
+  color: #ccc;
+}
+
+body.dark .topbar {
+  background: #000;
+  border-color: #333;
+}
+
+/* ===== GOLD MODE ===== */
+body.gold {
+  background: #1a1400;
+  color: #f5e6a1;
+}
+
+body.gold .topbar {
+  background: #1a1400;
+  border-color: gold;
+}
