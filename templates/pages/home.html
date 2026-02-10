@@ -1,43 +1,5 @@
 {% extends "layout/base.html" %}
 {% block content %}
-
-<div class="tabs">
-  <a href="#" data-tab="all">All</a>
-  <a href="#" data-tab="personal">Personal</a>
-  <a href="#" data-tab="unread">Unread</a>
-  <a href="/posts/public">Public</a>
-</div>
-
-<div id="tab-content">
-
-  <div class="tab-view" id="all">
-    <h3>All Chats</h3>
-    {% for u in users %}
-      <div class="chat-item">
-        <a href="/chat/{{ u.username }}">{{ u.username }}</a>
-      </div>
-    {% endfor %}
-  </div>
-
-  <div class="tab-view" id="personal" style="display:none">
-    <h3>Personal</h3>
-    {% for u in users %}
-      <div class="chat-item">
-        <a href="/chat/{{ u.username }}">{{ u.username }}</a>
-      </div>
-    {% endfor %}
-  </div>
-
-  <div class="tab-view" id="unread" style="display:none">
-    <h3>Unread</h3>
-    {% for p in unread %}
-      <div class="chat-item unread">
-        {{ p.content[:30] }}...
-      </div>
-    {% endfor %}
-  </div>
-
-</div>
-
-<script src="/static/js/tabs.js"></script>
+<h2>Home</h2>
+<p>Personal chats & unread messages</p>
 {% endblock %}
