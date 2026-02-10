@@ -1,37 +1,31 @@
-from flask import Blueprint, render_template, request, redirect
+from flask import Blueprint, render_template, request, redirect, url_for
 from flask_login import login_required, current_user
 from app import db
-from models.message import Message
+from models.post import Post
 from models.user import User
 
-posts_bp = Blueprint("posts", __name__)
+posts_bp = Blueprint("posts", __name__, url_prefix="/posts")
 
-@posts_bp.route("/chat/<username>", methods=["GET", "POST"])
+
+@posts_bp.route("/public", methods=["GET", "POST"])
 @login_required
-def chat(username):
-    user = User.query.filter_by(username=username).first()
-    if not user:
-        return "User not found", 404
-
+def public_feed():
     if request.method == "POST":
-        text = request.form.get("message")
+        text = request.form.get("text")
         if text:
-            msg = Message(
-                sender=current_user.username,
-                receiver=username,
-                content=text
-            )
-            db.session.add(msg)
+            post = Post(author_id=current_user.id, content=text, is_public=True)
+            db.session.add(post)
             db.session.commit()
-            return redirect(f"/chat/{username}")
+        return redirect(url_for("posts.public_feed"))
 
-    messages = Message.query.filter(
-        ((Message.sender == current_user.username) & (Message.receiver == username)) |
-        ((Message.sender == username) & (Message.receiver == current_user.username))
-    ).order_by(Message.timestamp).all()
+    posts = Post.query.filter_by(is_public=True).order_by(Post.created_at.desc()).all()
+    return render_template("pages/public.html", posts=posts)
 
-    return render_template(
-        "pages/chat.html",
-        messages=messages,
-        user=username
-            )
+
+@posts_bp.route("/mark-read/<int:post_id>")
+@login_required
+def mark_read(post_id):
+    post = Post.query.get_or_404(post_id)
+    post.read = True
+    db.session.commit()
+    return "", 204
