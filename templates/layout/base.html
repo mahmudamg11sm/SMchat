@@ -1,43 +1,45 @@
-/* ---------- DEFAULT ---------- */
-body {
-  background: #0d0d0d;
-  color: #fff;
-  font-family: Arial, sans-serif;
-  margin: 0;
-  padding: 0;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SMchat</title>
 
-/* ---------- DARK MODE ---------- */
-body.dark {
-  background: #000;
-  color: #ccc;
-}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
 
-body.dark .chat-box {
-  background: #111;
-  border-color: #333;
-}
+</head>
+<body>
 
-/* ---------- GOLDEN MODE ---------- */
-body.gold {
-  background: #1a1400;
-  color: #f5e6a1;
-}
+  <!-- ===== TOP BAR ===== -->
+  <div class="topbar">
+    <div class="logo">SMchat</div>
 
-body.gold .chat-box {
-  border: 1px solid gold;
-  background: #151000;
-}
+    <!-- THEME TOGGLE (ANAN NE MATSAYINSA) -->
+    <div class="theme-toggle">
+      <button id="darkBtn" title="Dark mode">🌙</button>
+      <button id="goldBtn" title="Golden mode">🟡</button>
+    </div>
+  </div>
 
-/* ---------- TOGGLE BUTTON ---------- */
-.theme-toggle {
-  display: flex;
-  gap: 10px;
-}
+  <!-- ===== MAIN CONTENT ===== -->
+  <main>
+    {% block content %}{% endblock %}
+  </main>
 
-.theme-toggle button {
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-}
+  <!-- ===== JS (KASAN BODY) ===== -->
+  <script>
+    const body = document.body;
+
+    document.getElementById("darkBtn").onclick = function () {
+      body.classList.remove("gold");
+      body.classList.toggle("dark");
+    };
+
+    document.getElementById("goldBtn").onclick = function () {
+      body.classList.remove("dark");
+      body.classList.toggle("gold");
+    };
+  </script>
+
+</body>
+    </html>
