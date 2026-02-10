@@ -1,22 +1,20 @@
 {% extends "layout/base.html" %}
 {% block content %}
-
-<h2>Welcome, {{ current_user }}</h2>
-
-<!-- Tabs: All | Personal | Unread | Public -->
-<div class="tabs">
-  <button onclick="showTab('all')">All</button>
-  <button onclick="showTab('personal')">Personal</button>
-  <button onclick="showTab('unread')">Unread</button>
-  <button onclick="showTab('public')">Public</button>
+<div id="all" class="tab-view">
+  <h3>All Posts</h3>
+  <div id="public-feed"></div>
 </div>
 
-<div id="tabContent" class="feed-box">
-  <!-- Messages / Posts appear here -->
-  <div class="post">Sample public post #1</div>
-  <div class="post">Sample personal post #2</div>
+<div id="personal" class="tab-view" style="display:none;">
+  <h3>Personal Posts</h3>
 </div>
 
-<script src="{{ url_for('static', filename='js/tabs.js') }}"></script>
+<div id="unread" class="tab-view" style="display:none;">
+  <h3>Unread Posts</h3>
+</div>
 
+<div id="public" class="tab-view" style="display:none;">
+  <h3>Public Posts</h3>
+  <div id="public-feed"></div>
+</div>
 {% endblock %}
