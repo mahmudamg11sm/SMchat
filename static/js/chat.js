@@ -1,49 +1,50 @@
-const chatBox = document.getElementById("chat-box");
+// SOCKET.IO CHAT
+const socket = io();
 const msgInput = document.getElementById("msg");
-const mediaInput = document.getElementById("media");
-const chatTitle = document.getElementById("chat-title");
+const messages = document.getElementById("messages");
+const typingIndicator = document.getElementById("typing");
 
-socket.on("dm_message", d=>{
-  addMessage(d.from,d.msg,d.media,d.type,d.seen);
+let currentChatUser = null; // set on click to DM
+
+msgInput?.addEventListener("input", () => {
+    if(!currentChatUser) return;
+    socket.emit("typing", { to: currentChatUser });
 });
 
-socket.on("typing",d=>{
-  if(d.from !== currentUser){
-    const typingEl = document.getElementById("typing");
-    typingEl.innerText = `${d.from} is typing...`;
-    setTimeout(()=>typingEl.innerText="",1500);
-  }
-});
+function sendMessage() {
+    if(!currentChatUser) return;
+    const text = msgInput.value.trim();
+    if(!text) return;
+    socket.emit("private_message", { to: currentChatUser, msg: text });
+    msgInput.value = "";
+}
 
-msgInput.addEventListener("input",()=>{
-  socket.emit("typing",{to:chatWith});
-});
+// RECEIVE MESSAGE
+socket.on("private_message", data => {
+    const div = document.createElement("div");
+    div.className = data.from === currentChatUser ? "them" : "me";
 
-function sendMsg(){
-  const msg = msgInput.value;
-  const file = mediaInput.files[0];
-
-  if(file){
-    const reader = new FileReader();
-    reader.onload = e=>{
-      socket.emit("dm_message",{to:chatWith,msg:msg,media:{name:file.name,data:Array.from(new Uint8Array(e.target.result))}});
+    if(data.type==="text"){
+        div.innerHTML = `<b>${data.from}</b>: ${data.msg} <span class="seen">✓✓</span>`;
     }
-    reader.readAsArrayBuffer(file);
-  }else{
-    socket.emit("dm_message",{to:chatWith,msg:msg});
-  }
-  msgInput.value="";
-  mediaInput.value="";
-}
 
-function addMessage(sender,text,media,type,seen=false){
-  const div = document.createElement("div");
-  div.className = sender===currentUser ? "me":"them";
-  div.innerHTML = `<b>${sender}</b>: ${text} ${seen?"<span class='seen'>✓✓</span>":""}`;
-  if(media){
-    if(type==="image") div.innerHTML+=`<br><img src="/${media}" style="max-width:100%;border-radius:5px">`;
-    if(type==="video") div.innerHTML+=`<br><video src="/${media}" controls style="max-width:100%;border-radius:5px"></video>`;
-  }
-  chatBox.appendChild(div);
-  chatBox.scrollTop=chatBox.scrollHeight;
-}
+    if(data.type==="image"){
+        div.innerHTML = `<b>${data.from}</b><br><img src="/${data.media_url}" style="max-width:100%;border-radius:10px">`;
+    }
+
+    if(data.type==="video"){
+        div.innerHTML = `<b>${data.from}</b><br><video src="/${data.media_url}" controls style="max-width:100%;border-radius:10px"></video>`;
+    }
+
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+});
+
+// TYPING INDICATOR
+socket.on("typing", d => {
+    if(d.from === currentChatUser){
+        typingIndicator.style.display = "block";
+        typingIndicator.innerText = `${d.from} is typing...`;
+        setTimeout(()=>{ typingIndicator.style.display="none"; },1500);
+    }
+});
