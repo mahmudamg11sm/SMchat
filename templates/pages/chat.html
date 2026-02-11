@@ -1,83 +1,159 @@
 {% extends "layout/base.html" %}
 {% block content %}
 
-<h2>
-Chat with {{ friend }}
-<span id="status"></span>
-</h2>
+<div class="chat-container">
 
-<div id="typing" style="display:none;">Typing...</div>
+  <div class="chat-header">
+    <h3>{{ friend }}</h3>
+    <span id="userStatus"></span>
+  </div>
 
-<div class="chat-box" id="chatBox"></div>
+  <div id="messages" class="messages">
+    {% for sender, text, status in messages %}
+      <div class="msg {{ 'me' if sender==session['user'] else 'other' }}">
+        <span>{{ text }}</span>
+        {% if sender==session['user'] %}
+          <small class="status">{{ status }}</small>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
 
-<form id="chatForm">
-  <input id="msgInput" placeholder="Type message..." autocomplete="off">
-  <button type="submit">Send</button>
-</form>
+  <div id="typing"></div>
 
-<button id="recordBtn">🎤 Record Voice</button>
+  <div class="chat-form">
+    <input id="messageInput" placeholder="Type message...">
+    <button onclick="sendMessage()">Send</button>
+    <button onclick="startRecording()">🎤</button>
+  </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.min.js"></script>
+</div>
 
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 <script>
 const socket = io();
-const currentUser = "{{ session['user'] }}";
 const friend = "{{ friend }}";
-const room = [currentUser, friend].sort().join("_");
+const currentUser = "{{ session['user'] }}";
+const room = [friend, currentUser].sort().join("_");
 
 socket.emit("join_room", {room: room});
 
-const chatBox = document.getElementById("chatBox");
-const input = document.getElementById("msgInput");
-
-// SEND MESSAGE
-document.getElementById("chatForm").onsubmit = e => {
-  e.preventDefault();
-  const msg = input.value;
+// ---------------- SEND MESSAGE ----------------
+function sendMessage() {
+  const input = document.getElementById("messageInput");
+  const msg = input.value.trim();
   if(!msg) return;
 
-  socket.emit("private_message", {to: friend, msg: msg});
-  input.value="";
-};
+  socket.emit("private_message", {
+    to: friend,
+    msg: msg
+  });
 
-// RECEIVE MESSAGE
+  input.value = "";
+}
+
+// ---------------- RECEIVE MESSAGE ----------------
 socket.on("private_message", data => {
-  const div = document.createElement("div");
-  div.innerHTML = `<b>${data.from}:</b> ${data.msg}
-  <small>${data.status}</small>`;
-  chatBox.appendChild(div);
 
-  if(data.from !== currentUser){
+  const box = document.getElementById("messages");
+
+  const div = document.createElement("div");
+  div.classList.add("msg");
+
+  if(data.from === currentUser){
+    div.classList.add("me");
+    div.innerHTML = `
+      <span>${data.msg}</span>
+      <small class="status">${data.status}</small>
+      <button onclick="deleteMessage(this)">🗑</button>
+    `;
+  } else {
+    div.classList.add("other");
+    div.innerHTML = `<span>${data.msg}</span>`;
     socket.emit("seen", {sender: data.from});
   }
+
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
 });
 
-// SEEN UPDATE
+// ---------------- SEEN ----------------
 socket.on("message_seen", data => {
-  const last = chatBox.lastElementChild;
-  if(last) last.innerHTML += " ✓✓ Seen";
+  document.querySelectorAll(".status").forEach(s=>{
+    s.innerText = "seen";
+  });
 });
 
-// ONLINE STATUS
-socket.on("user_status", data => {
+// ---------------- USER ONLINE ----------------
+socket.on("user_status", data=>{
   if(data.user === friend){
-    document.getElementById("status").innerText =
-      data.status === "online" ? " 🟢 Online" : " ⚫ Offline";
+    document.getElementById("userStatus").innerText = data.status;
   }
 });
 
-// TYPING
-input.oninput = () => {
-  socket.emit("typing", {to: friend});
-};
+// ---------------- TYPING ----------------
+const input = document.getElementById("messageInput");
 
-socket.on("typing", data => {
-  if(data.user !== currentUser){
-    document.getElementById("typing").style.display="block";
-    setTimeout(()=> {
-      document.getElementById("typing").style.display="none";
+input.addEventListener("input", ()=>{
+  socket.emit("typing", {to: friend});
+});
+
+socket.on("typing", data=>{
+  if(data.from === friend){
+    document.getElementById("typing").innerText = friend + " is typing...";
+    setTimeout(()=>{
+      document.getElementById("typing").innerText = "";
     },2000);
   }
+});
+
+// ---------------- DELETE MESSAGE ----------------
+function deleteMessage(btn){
+  const msgDiv = btn.parentElement;
+  socket.emit("delete_message", {text: msgDiv.innerText});
+  msgDiv.remove();
+}
+
+// ---------------- VOICE RECORD ----------------
+let mediaRecorder;
+let audioChunks = [];
+
+function startRecording(){
+  navigator.mediaDevices.getUserMedia({audio:true})
+  .then(stream=>{
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.start();
+
+    mediaRecorder.ondataavailable = e=>{
+      audioChunks.push(e.data);
+    };
+
+    mediaRecorder.onstop = ()=>{
+      const blob = new Blob(audioChunks);
+      const reader = new FileReader();
+      reader.onload = function(){
+        socket.emit("voice_message", {
+          to: friend,
+          audio: reader.result
+        });
+      };
+      reader.readAsDataURL(blob);
+      audioChunks = [];
+    };
+
+    setTimeout(()=>{
+      mediaRecorder.stop();
+    },3000);
+  });
+}
+
+socket.on("voice_message", data=>{
+  const box = document.getElementById("messages");
+  const div = document.createElement("div");
+  div.classList.add("msg","other");
+
+  div.innerHTML = `<audio controls src="${data.audio}"></audio>`;
+  box.appendChild(div);
 });
 </script>
 
