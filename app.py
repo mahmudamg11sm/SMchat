@@ -208,16 +208,34 @@ def on_disconnect():
     sid_user = USERS.pop(request.sid, None)
     print(f"{sid_user} disconnected")
 
+@socketio.on("join_room")
+def handle_join(data):
+    room = data.get("room")
+    join_room(room)
+
 @socketio.on("private_message")
 def private_message(data):
     sender = session.get("user")
     receiver = data.get("to")
     text = data.get("msg")
-    if not sender or not receiver: return
-    c.execute("INSERT INTO messages(sender,receiver,text,type) VALUES(?,?,?,?)",(sender,receiver,text,"text"))
-    db.commit()
-    emit("private_message", {"from":sender,"msg":text,"type":"text"}, broadcast=True)
 
+    if not sender or not receiver:
+        return
+
+    # Save message
+    c.execute("""
+        INSERT INTO messages(sender,receiver,text,type)
+        VALUES(?,?,?,?)
+    """,(sender,receiver,text,"text"))
+    db.commit()
+
+    # Create room name
+    room = "_".join(sorted([sender, receiver]))
+
+    emit("private_message",
+         {"from": sender, "msg": text},
+         room=room)
+    
 # ------------------ MAIN ------------------
 if __name__=="__main__":
     port=int(os.environ.get("PORT",10000))
