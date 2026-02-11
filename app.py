@@ -176,6 +176,28 @@ def search():
             result = {"username": row[0]}
     return render_template("pages/search.html", result=result)
 
+# Private chat page
+@app.route("/chat/<username>")
+def chat(username):
+    if "user" not in session:
+        return redirect("/login")
+
+    current_user = session["user"]
+
+    # Get old messages between users
+    c.execute("""
+        SELECT sender, text FROM messages
+        WHERE (sender=? AND receiver=?)
+        OR (sender=? AND receiver=?)
+        ORDER BY id ASC
+    """, (current_user, username, username, current_user))
+
+    messages = c.fetchall()
+
+    return render_template("pages/chat.html",
+                           friend=username,
+                           messages=messages)
+    
 # ------------------ SOCKET.IO ------------------
 @socketio.on("connect")
 def on_connect():
