@@ -1,20 +1,37 @@
 {% extends "layout/base.html" %}
 {% block content %}
-<div id="all" class="tab-view">
-  <h3>All Posts</h3>
-  <div id="public-feed"></div>
-</div>
+<h2>Welcome, {{ session['user'] }}</h2>
+<a href="/logout">Logout</a>
+<a href="/edit-profile">Edit Profile</a>
+<a href="/public">Public Feed</a>
+<a href="/search">Search Users</a>
 
-<div id="personal" class="tab-view" style="display:none;">
-  <h3>Personal Posts</h3>
-</div>
+<div class="chat-box" id="chatBox"></div>
 
-<div id="unread" class="tab-view" style="display:none;">
-  <h3>Unread Posts</h3>
-</div>
+<form class="chat-form" id="chatForm">
+  <input id="msgInput" placeholder="Type a message">
+  <button type="submit">Send</button>
+</form>
 
-<div id="public" class="tab-view" style="display:none;">
-  <h3>Public Posts</h3>
-  <div id="public-feed"></div>
-</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.min.js"></script>
+<script>
+const socket = io();
+const chatBox = document.getElementById("chatBox");
+const form = document.getElementById("chatForm");
+const input = document.getElementById("msgInput");
+
+form.onsubmit = e => {
+  e.preventDefault();
+  const msg = input.value;
+  if(!msg) return;
+  socket.emit("private_message",{to:"all", msg:msg});
+  input.value="";
+};
+
+socket.on("private_message", data => {
+  const div = document.createElement("div");
+  div.textContent = `${data.from}: ${data.msg}`;
+  chatBox.appendChild(div);
+});
+</script>
 {% endblock %}
