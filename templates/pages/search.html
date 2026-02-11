@@ -1,13 +1,13 @@
 {% extends "layout/base.html" %}
 {% block content %}
+<h2>Search Users</h2>
 <form method="get">
   <input name="q" placeholder="Search username">
+  <button type="submit">Search</button>
 </form>
 
 {% if result %}
-  <a href="/chat/{{ result.username }}">
-    Chat with {{ result.username }}
-  </a>
+  <a href="/chat/{{ result.username }}">Chat with {{ result.username }}</a>
 {% elif request.args.get("q") %}
   <p>No results found</p>
 {% endif %}
