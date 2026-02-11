@@ -1,12 +1,13 @@
 import os
 from flask import Flask, render_template, request, redirect, session, send_from_directory
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, emit, join_room
 from werkzeug.utils import secure_filename
 import sqlite3
 
 # ------------------ APP SETUP ------------------
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "smchat-secret"
+
 UPLOAD_FOLDER = "static/uploads"
 IMAGE_EXT = {"png","jpg","jpeg","gif"}
 VIDEO_EXT = {"mp4","webm","mov"}
@@ -35,6 +36,7 @@ CREATE TABLE IF NOT EXISTS users(
     password TEXT
 )
 """)
+
 # Profiles table
 c.execute("""
 CREATE TABLE IF NOT EXISTS profiles(
@@ -43,7 +45,8 @@ CREATE TABLE IF NOT EXISTS profiles(
     bio TEXT
 )
 """)
-# Messages table
+
+# Messages table (UPDATED WITH STATUS)
 c.execute("""
 CREATE TABLE IF NOT EXISTS messages(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -51,9 +54,11 @@ CREATE TABLE IF NOT EXISTS messages(
     receiver TEXT,
     text TEXT,
     type TEXT,
-    media_url TEXT
+    media_url TEXT,
+    status TEXT DEFAULT 'sent'
 )
 """)
+
 # Posts table
 c.execute("""
 CREATE TABLE IF NOT EXISTS posts(
@@ -62,40 +67,45 @@ CREATE TABLE IF NOT EXISTS posts(
     content TEXT
 )
 """)
+
 db.commit()
 
-# ------------------ SESSION USERS ------------------
-USERS = {}  # sid -> username
+# ------------------ ONLINE USERS ------------------
+ONLINE_USERS = set()
 
 # ------------------ ROUTES ------------------
 
-# Home
 @app.route("/")
 def index():
     if "user" not in session:
         return redirect("/login")
     return render_template("pages/home.html")
 
-# Login
+
 @app.route("/login", methods=["GET","POST"])
 def login():
     if request.method=="POST":
         username = request.form.get("username")
         password = request.form.get("password")
+
         c.execute("SELECT password FROM users WHERE username=?", (username,))
         row = c.fetchone()
+
         if row and row[0] == password:
             session["user"] = username
             return redirect("/")
+
         return render_template("auth/login.html", error="Invalid credentials")
+
     return render_template("auth/login.html")
 
-# Register
+
 @app.route("/register", methods=["GET","POST"])
 def register():
     if request.method=="POST":
         username = request.form.get("username")
         password = request.form.get("password")
+
         try:
             c.execute("INSERT INTO users(username,password) VALUES(?,?)",(username,password))
             db.commit()
@@ -103,15 +113,16 @@ def register():
             return redirect("/")
         except:
             return render_template("auth/register.html", error="Username exists")
+
     return render_template("auth/register.html")
 
-# Logout
+
 @app.route("/logout")
 def logout():
     session.pop("user", None)
     return redirect("/login")
 
-# Profile
+
 @app.route("/profile/<username>")
 def profile(username):
     c.execute("SELECT avatar,bio FROM profiles WHERE username=?", (username,))
@@ -120,63 +131,72 @@ def profile(username):
     bio = p[1] if p else ""
     return render_template("pages/profile.html", username=username, avatar=avatar, bio=bio)
 
-# Edit profile
+
 @app.route("/edit-profile", methods=["GET","POST"])
 def edit_profile():
     if "user" not in session:
         return redirect("/login")
+
     if request.method=="POST":
         bio = request.form.get("bio","")
         avatar = None
         file = request.files.get("avatar")
+
         if file and file.filename:
             name = secure_filename(file.filename)
             ext = name.rsplit(".", 1)[-1].lower()
+
             if ext in IMAGE_EXT:
                 path = os.path.join(IMAGE_FOLDER, name)
             elif ext in VIDEO_EXT:
                 path = os.path.join(VIDEO_FOLDER, name)
             else:
                 path = os.path.join(UPLOAD_FOLDER, name)
+
             file.save(path)
             avatar = path
+
         c.execute("""
         INSERT INTO profiles(username,avatar,bio)
         VALUES(?,?,?)
         ON CONFLICT(username) DO UPDATE SET avatar=excluded.avatar,bio=excluded.bio
         """,(session["user"],avatar,bio))
+
         db.commit()
         return redirect(f"/profile/{session['user']}")
+
     c.execute("SELECT bio FROM profiles WHERE username=?",(session["user"],))
     bio_row = c.fetchone()
     bio = bio_row[0] if bio_row else ""
+
     return render_template("pages/edit_profile.html", bio=bio)
 
-# Uploads serving
+
 @app.route("/uploads/<path:filename>")
 def uploads(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
-# Public posts
+
 @app.route("/public")
 def public():
     c.execute("SELECT user,content FROM posts ORDER BY id DESC")
     posts = c.fetchall()
     return render_template("pages/public.html", posts=posts)
 
-# Search user
+
 @app.route("/search")
 def search():
     q = request.args.get("q","")
     result = None
     if q:
-        c.execute("SELECT username FROM users WHERE username=?",(q,))
+        c.execute("SELECT username FROM users WHERE username=?", (q,))
         row = c.fetchone()
         if row:
             result = {"username": row[0]}
+
     return render_template("pages/search.html", result=result)
 
-# Private chat page
+
 @app.route("/chat/<username>")
 def chat(username):
     if "user" not in session:
@@ -184,9 +204,8 @@ def chat(username):
 
     current_user = session["user"]
 
-    # Get old messages between users
     c.execute("""
-        SELECT sender, text FROM messages
+        SELECT sender, text, status FROM messages
         WHERE (sender=? AND receiver=?)
         OR (sender=? AND receiver=?)
         ORDER BY id ASC
@@ -197,21 +216,34 @@ def chat(username):
     return render_template("pages/chat.html",
                            friend=username,
                            messages=messages)
-    
+
 # ------------------ SOCKET.IO ------------------
+
 @socketio.on("connect")
 def on_connect():
-    print("Client connected")
+    user = session.get("user")
+    if user:
+        ONLINE_USERS.add(user)
+        emit("user_status",
+             {"user": user, "status": "online"},
+             broadcast=True)
+
 
 @socketio.on("disconnect")
 def on_disconnect():
-    sid_user = USERS.pop(request.sid, None)
-    print(f"{sid_user} disconnected")
+    user = session.get("user")
+    if user and user in ONLINE_USERS:
+        ONLINE_USERS.remove(user)
+        emit("user_status",
+             {"user": user, "status": "offline"},
+             broadcast=True)
+
 
 @socketio.on("join_room")
 def handle_join(data):
     room = data.get("room")
     join_room(room)
+
 
 @socketio.on("private_message")
 def private_message(data):
@@ -222,20 +254,42 @@ def private_message(data):
     if not sender or not receiver:
         return
 
-    # Save message
+    status = "delivered" if receiver in ONLINE_USERS else "sent"
+
     c.execute("""
-        INSERT INTO messages(sender,receiver,text,type)
-        VALUES(?,?,?,?)
-    """,(sender,receiver,text,"text"))
+        INSERT INTO messages(sender,receiver,text,type,status)
+        VALUES(?,?,?,?,?)
+    """,(sender,receiver,text,"text",status))
     db.commit()
 
-    # Create room name
     room = "_".join(sorted([sender, receiver]))
 
     emit("private_message",
-         {"from": sender, "msg": text},
+         {"from": sender,
+          "msg": text,
+          "status": status},
          room=room)
-    
+
+
+@socketio.on("seen")
+def mark_seen(data):
+    sender = data.get("sender")
+    receiver = session.get("user")
+
+    c.execute("""
+        UPDATE messages
+        SET status='seen'
+        WHERE sender=? AND receiver=?
+    """,(sender,receiver))
+    db.commit()
+
+    room = "_".join(sorted([sender, receiver]))
+
+    emit("message_seen",
+         {"sender": sender},
+         room=room)
+
+
 # ------------------ MAIN ------------------
 if __name__=="__main__":
     port=int(os.environ.get("PORT",10000))
