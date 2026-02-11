@@ -1,5 +1,12 @@
 {% extends "layout/base.html" %}
 {% block content %}
 <h2>Public Feed</h2>
-<div id="public-feed"></div>
+<a href="/">Home</a>
+{% for user, content in posts %}
+<div>
+  <b>{{ user }}</b>: {{ content }}
+</div>
+{% else %}
+<p>No posts yet.</p>
+{% endfor %}
 {% endblock %}
