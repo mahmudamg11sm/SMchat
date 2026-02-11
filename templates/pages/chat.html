@@ -1,60 +1,83 @@
 {% extends "layout/base.html" %}
 {% block content %}
 
-<h2>Chat with {{ friend }}</h2>
-<a href="/">⬅ Back</a>
+<h2>
+Chat with {{ friend }}
+<span id="status"></span>
+</h2>
 
-<div class="chat-box" id="chatBox">
-  {% for sender, text in messages %}
-    <div class="{% if sender == session['user'] %}me{% else %}them{% endif %}">
-      <b>{{ sender }}:</b> {{ text }}
-    </div>
-  {% endfor %}
-</div>
+<div id="typing" style="display:none;">Typing...</div>
 
-<form class="chat-form" id="chatForm">
+<div class="chat-box" id="chatBox"></div>
+
+<form id="chatForm">
   <input id="msgInput" placeholder="Type message..." autocomplete="off">
   <button type="submit">Send</button>
 </form>
+
+<button id="recordBtn">🎤 Record Voice</button>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.min.js"></script>
 
 <script>
 const socket = io();
-const chatBox = document.getElementById("chatBox");
-const form = document.getElementById("chatForm");
-const input = document.getElementById("msgInput");
-
 const currentUser = "{{ session['user'] }}";
 const friend = "{{ friend }}";
-
-// Create unique room
 const room = [currentUser, friend].sort().join("_");
 
-// Join room
 socket.emit("join_room", {room: room});
 
-// Send message
-form.onsubmit = e => {
+const chatBox = document.getElementById("chatBox");
+const input = document.getElementById("msgInput");
+
+// SEND MESSAGE
+document.getElementById("chatForm").onsubmit = e => {
   e.preventDefault();
   const msg = input.value;
   if(!msg) return;
 
-  socket.emit("private_message", {
-    to: friend,
-    msg: msg
-  });
-
-  input.value = "";
+  socket.emit("private_message", {to: friend, msg: msg});
+  input.value="";
 };
 
-// Receive message
+// RECEIVE MESSAGE
 socket.on("private_message", data => {
   const div = document.createElement("div");
-  div.className = data.from === currentUser ? "me" : "them";
-  div.innerHTML = `<b>${data.from}:</b> ${data.msg}`;
+  div.innerHTML = `<b>${data.from}:</b> ${data.msg}
+  <small>${data.status}</small>`;
   chatBox.appendChild(div);
-  chatBox.scrollTop = chatBox.scrollHeight;
+
+  if(data.from !== currentUser){
+    socket.emit("seen", {sender: data.from});
+  }
+});
+
+// SEEN UPDATE
+socket.on("message_seen", data => {
+  const last = chatBox.lastElementChild;
+  if(last) last.innerHTML += " ✓✓ Seen";
+});
+
+// ONLINE STATUS
+socket.on("user_status", data => {
+  if(data.user === friend){
+    document.getElementById("status").innerText =
+      data.status === "online" ? " 🟢 Online" : " ⚫ Offline";
+  }
+});
+
+// TYPING
+input.oninput = () => {
+  socket.emit("typing", {to: friend});
+};
+
+socket.on("typing", data => {
+  if(data.user !== currentUser){
+    document.getElementById("typing").style.display="block";
+    setTimeout(()=> {
+      document.getElementById("typing").style.display="none";
+    },2000);
+  }
 });
 </script>
 
