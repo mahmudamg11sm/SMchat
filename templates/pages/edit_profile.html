@@ -2,8 +2,10 @@
 {% block content %}
 <h2>Edit Profile</h2>
 <form method="post" enctype="multipart/form-data">
-  <input type="text" name="bio" placeholder="Bio" value="{{ bio }}">
-  <input type="file" name="avatar">
+  <label>Bio:</label>
+  <textarea name="bio">{{ bio }}</textarea><br>
+  <label>Avatar:</label>
+  <input type="file" name="avatar"><br>
   <button type="submit">Save</button>
 </form>
 {% endblock %}
