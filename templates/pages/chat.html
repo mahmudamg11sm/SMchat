@@ -1,15 +1,61 @@
 {% extends "layout/base.html" %}
 {% block content %}
-<div class="chat-header">
-  <h3 id="chat-title">{{ chat_with }}</h3>
-  <span id="typing"></span>
+
+<h2>Chat with {{ friend }}</h2>
+<a href="/">⬅ Back</a>
+
+<div class="chat-box" id="chatBox">
+  {% for sender, text in messages %}
+    <div class="{% if sender == session['user'] %}me{% else %}them{% endif %}">
+      <b>{{ sender }}:</b> {{ text }}
+    </div>
+  {% endfor %}
 </div>
 
-<div id="messages" class="chat-box"></div>
-
-<form class="chat-form" onsubmit="sendMessage(); return false;">
-  <input id="msg" type="text" placeholder="Type a message...">
+<form class="chat-form" id="chatForm">
+  <input id="msgInput" placeholder="Type message..." autocomplete="off">
   <button type="submit">Send</button>
-  <input type="file" id="media">
 </form>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.min.js"></script>
+
+<script>
+const socket = io();
+const chatBox = document.getElementById("chatBox");
+const form = document.getElementById("chatForm");
+const input = document.getElementById("msgInput");
+
+const currentUser = "{{ session['user'] }}";
+const friend = "{{ friend }}";
+
+// Create unique room
+const room = [currentUser, friend].sort().join("_");
+
+// Join room
+socket.emit("join_room", {room: room});
+
+// Send message
+form.onsubmit = e => {
+  e.preventDefault();
+  const msg = input.value;
+  if(!msg) return;
+
+  socket.emit("private_message", {
+    to: friend,
+    msg: msg
+  });
+
+  input.value = "";
+};
+
+// Receive message
+socket.on("private_message", data => {
+  const div = document.createElement("div");
+  div.className = data.from === currentUser ? "me" : "them";
+  div.innerHTML = `<b>${data.from}:</b> ${data.msg}`;
+  chatBox.appendChild(div);
+  chatBox.scrollTop = chatBox.scrollHeight;
+});
+</script>
+
 {% endblock %}
