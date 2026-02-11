@@ -270,12 +270,27 @@ def private_message(data):
           "status": status},
          room=room)
 
-
 @socketio.on("seen")
 def mark_seen(data):
     sender = data.get("sender")
     receiver = session.get("user")
 
+    @socketio.on("typing")
+def typing(data):
+    sender = session.get("user")
+    receiver = data.get("to")
+
+    room = "_".join(sorted([sender, receiver]))
+    emit("typing", {"from": sender}, room=room)
+ 
+@socketio.on("delete_message")
+def delete_message(data):
+    text = data.get("text")
+    sender = session.get("user")
+
+    c.execute("DELETE FROM messages WHERE sender=? AND text=?",(sender,text))
+    db.commit()
+    
     c.execute("""
         UPDATE messages
         SET status='seen'
@@ -288,8 +303,27 @@ def mark_seen(data):
     emit("message_seen",
          {"sender": sender},
          room=room)
+    
+@socketio.on("delete_message")
+def delete_message(data):
+    text = data.get("text")
+    sender = session.get("user")
 
+    c.execute("DELETE FROM messages WHERE sender=? AND text=?",(sender,text))
+    db.commit()
+    
+@socketio.on("voice_message")
+def voice_message(data):
+    sender = session.get("user")
+    receiver = data.get("to")
+    audio = data.get("audio")
 
+    room = "_".join(sorted([sender, receiver]))
+
+    emit("voice_message",
+         {"from": sender, "audio": audio},
+         room=room)
+    
 # ------------------ MAIN ------------------
 if __name__=="__main__":
     port=int(os.environ.get("PORT",10000))
