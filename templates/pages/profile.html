@@ -1,7 +1,7 @@
 {% extends "layout/base.html" %}
 {% block content %}
-<h2>{{ username }}</h2>
-<img src="{{ avatar or url_for('static', filename='images/ui/placeholder.png') }}" width="100">
+<h2>{{ username }}'s Profile</h2>
+<img src="{{ avatar or '/static/uploads/images/.gitkeep' }}" width="100">
 <p>{{ bio }}</p>
-<a href="{{ url_for('edit_profile') }}">Edit Profile</a>
+<a href="/edit-profile">Edit Profile</a>
 {% endblock %}
