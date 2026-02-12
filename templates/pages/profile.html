@@ -1,7 +1,22 @@
 {% extends "layout/base.html" %}
 {% block content %}
-<h2>{{ username }}'s Profile</h2>
-<img src="{{ avatar or '/static/uploads/images/.gitkeep' }}" width="100">
-<p>{{ bio }}</p>
-<a href="/edit-profile">Edit Profile</a>
+
+<div class="profile-container">
+  <h2>{{ username }}'s Profile</h2>
+
+  {% if avatar %}
+    <img src="/{{ avatar }}" alt="Avatar" style="width:150px;height:150px;border-radius:50%;border:2px solid gold;">
+  {% else %}
+    <div style="width:150px;height:150px;border-radius:50%;border:2px solid gold;display:flex;align-items:center;justify-content:center;color:gold;">
+      No Avatar
+    </div>
+  {% endif %}
+
+  <p>{{ bio }}</p>
+
+  {% if session.get('user') == username %}
+    <a href="/edit-profile"><button>Edit Profile</button></a>
+  {% endif %}
+</div>
+
 {% endblock %}
