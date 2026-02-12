@@ -1,12 +1,24 @@
 {% extends "layout/base.html" %}
 {% block content %}
-<h2>Public Feed</h2>
-<a href="/">Home</a>
-{% for user, content in posts %}
-<div>
-  <b>{{ user }}</b>: {{ content }}
+
+<div class="public-container">
+  <h2>Public Posts</h2>
+
+  {% for user, content in posts %}
+    <div class="post" style="border:1px solid gold; padding:10px; margin-bottom:10px; background:#222;">
+      <strong>{{ user }}</strong>:
+      <p>{{ content }}</p>
+    </div>
+  {% else %}
+    <p>No public posts yet.</p>
+  {% endfor %}
+
+  {% if session.get('user') %}
+    <form method="POST" action="/add-post">
+      <textarea name="content" rows="3" style="width:100%;" placeholder="Write something public..."></textarea><br>
+      <button type="submit">Post</button>
+    </form>
+  {% endif %}
 </div>
-{% else %}
-<p>No posts yet.</p>
-{% endfor %}
+
 {% endblock %}
