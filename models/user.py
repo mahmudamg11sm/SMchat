@@ -1,11 +1,31 @@
-from flask_login import UserMixin
-from app import db, login_manager
+import sqlite3
+from flask import g
 
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(30), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
+class User:
+    TABLE = "users"
 
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
+    def __init__(self, username, password=None):
+        self.username = username
+        self.password = password
+
+    @staticmethod
+    def get_db():
+        return g.db
+
+    @classmethod
+    def create(cls, username, password):
+        db = cls.get_db()
+        c = db.cursor()
+        c.execute(f"INSERT INTO {cls.TABLE}(username,password) VALUES(?,?)", (username, password))
+        db.commit()
+        return cls(username, password)
+
+    @classmethod
+    def get(cls, username):
+        db = cls.get_db()
+        c = db.cursor()
+        c.execute(f"SELECT * FROM {cls.TABLE} WHERE username=?", (username,))
+        row = c.fetchone()
+        if row:
+            return cls(row["username"], row["password"])
+        return None
