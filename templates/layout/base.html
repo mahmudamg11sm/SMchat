@@ -1,41 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>SMchat</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SM Chat</title>
+<link rel="stylesheet" href="/static/css/home.css">
+<link rel="stylesheet" href="/static/css/theme.css">
 </head>
-<body>
-  <!-- THEME TOGGLE -->
-  <div class="theme-toggle">
-    <button id="darkBtn">🌙</button>
-    <button id="goldBtn">🟡</button>
-  </div>
+<body class="dark">
 
-  <!-- NAVBAR TOP -->
-  {% include 'layout/navbar.html' %}
+<header>
+  <nav>
+    <a href="/">Home</a> | 
+    <a href="/public">Public</a> | 
+    <a href="/search">Search</a> | 
+    {% if session.get('user') %}
+      <a href="/profile/{{ session['user'] }}">Profile</a> | 
+      <a href="/logout">Logout</a>
+    {% else %}
+      <a href="/login">Login</a> | <a href="/register">Register</a>
+    {% endif %}
+  </nav>
+</header>
 
-  <!-- MAIN CONTENT -->
-  <div class="content">
-    {% block content %}{% endblock %}
-  </div>
+<main>
+  {% block content %}{% endblock %}
+</main>
 
-  <!-- BOTTOM NAV -->
-  <div class="bottom-nav">
-    <img src="{{ url_for('static', filename='images/icons/home.png') }}">
-    <img src="{{ url_for('static', filename='images/icons/public.png') }}">
-    <img src="{{ url_for('static', filename='images/icons/notifications.png') }}">
-    <img src="{{ url_for('static', filename='images/icons/search.png') }}">
-    <img src="{{ url_for('static', filename='images/icons/users.png') }}">
-    <img src="{{ url_for('static', filename='images/icons/info.png') }}">
-  </div>
-
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-  <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/tabs.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/feed.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
 </body>
-  </html>
+</html>
