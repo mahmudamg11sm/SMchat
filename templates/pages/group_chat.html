@@ -1,0 +1,32 @@
+{% extends "layout/base.html" %}
+{% block content %}
+
+<h2>Group Chat</h2>
+
+<div id="groupMessages" class="messages"></div>
+
+<input id="groupInput" placeholder="Message group">
+<button onclick="sendGroup()">Send</button>
+
+<script>
+const socket = io();
+const groupId = "{{ group_id }}";
+const currentUser = "{{ session['user'] }}";
+
+socket.emit("join_room",{room:"group_"+groupId});
+
+function sendGroup(){
+  const msg = document.getElementById("groupInput").value;
+  socket.emit("group_message",{
+    group_id: groupId,
+    msg: msg
+  });
+}
+
+socket.on("group_message",data=>{
+  const box=document.getElementById("groupMessages");
+  box.innerHTML += `<div><b>${data.from}</b>: ${data.msg}</div>`;
+});
+</script>
+
+{% endblock %}
