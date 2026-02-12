@@ -1,8 +1,8 @@
 import os
+import sqlite3
 from flask import Flask, render_template, request, redirect, session, send_from_directory
 from flask_socketio import SocketIO, emit, join_room
 from werkzeug.utils import secure_filename
-import sqlite3
 
 # ------------------ APP SETUP ------------------
 app = Flask(__name__)
@@ -15,7 +15,6 @@ VIDEO_EXT = {"mp4","webm","mov"}
 IMAGE_FOLDER = os.path.join(UPLOAD_FOLDER, "images")
 VIDEO_FOLDER = os.path.join(UPLOAD_FOLDER, "videos")
 
-# Ensure folders exist
 for folder in [UPLOAD_FOLDER, IMAGE_FOLDER, VIDEO_FOLDER]:
     os.makedirs(folder, exist_ok=True)
 
@@ -29,7 +28,6 @@ db_path = "instance/database.db"
 db = sqlite3.connect(db_path, check_same_thread=False)
 c = db.cursor()
 
-# Users table
 c.execute("""
 CREATE TABLE IF NOT EXISTS users(
     username TEXT PRIMARY KEY,
@@ -37,7 +35,6 @@ CREATE TABLE IF NOT EXISTS users(
 )
 """)
 
-# Profiles table
 c.execute("""
 CREATE TABLE IF NOT EXISTS profiles(
     username TEXT PRIMARY KEY,
@@ -46,7 +43,6 @@ CREATE TABLE IF NOT EXISTS profiles(
 )
 """)
 
-# Messages table (UPDATED WITH STATUS)
 c.execute("""
 CREATE TABLE IF NOT EXISTS messages(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,7 +55,6 @@ CREATE TABLE IF NOT EXISTS messages(
 )
 """)
 
-# Posts table
 c.execute("""
 CREATE TABLE IF NOT EXISTS posts(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -81,7 +76,6 @@ def index():
         return redirect("/login")
     return render_template("pages/home.html")
 
-
 @app.route("/login", methods=["GET","POST"])
 def login():
     if request.method=="POST":
@@ -99,7 +93,6 @@ def login():
 
     return render_template("auth/login.html")
 
-
 @app.route("/register", methods=["GET","POST"])
 def register():
     if request.method=="POST":
@@ -116,12 +109,10 @@ def register():
 
     return render_template("auth/register.html")
 
-
 @app.route("/logout")
 def logout():
     session.pop("user", None)
     return redirect("/login")
-
 
 @app.route("/profile/<username>")
 def profile(username):
@@ -130,7 +121,6 @@ def profile(username):
     avatar = p[0] if p else None
     bio = p[1] if p else ""
     return render_template("pages/profile.html", username=username, avatar=avatar, bio=bio)
-
 
 @app.route("/edit-profile", methods=["GET","POST"])
 def edit_profile():
@@ -171,18 +161,15 @@ def edit_profile():
 
     return render_template("pages/edit_profile.html", bio=bio)
 
-
 @app.route("/uploads/<path:filename>")
 def uploads(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
-
 
 @app.route("/public")
 def public():
     c.execute("SELECT user,content FROM posts ORDER BY id DESC")
     posts = c.fetchall()
     return render_template("pages/public.html", posts=posts)
-
 
 @app.route("/search")
 def search():
@@ -193,9 +180,7 @@ def search():
         row = c.fetchone()
         if row:
             result = {"username": row[0]}
-
     return render_template("pages/search.html", result=result)
-
 
 @app.route("/chat/<username>")
 def chat(username):
@@ -217,7 +202,7 @@ def chat(username):
                            friend=username,
                            messages=messages)
 
-# ------------------ SOCKET.IO ------------------
+# ------------------ SOCKET EVENTS ------------------
 
 @socketio.on("connect")
 def on_connect():
@@ -228,7 +213,6 @@ def on_connect():
              {"user": user, "status": "online"},
              broadcast=True)
 
-
 @socketio.on("disconnect")
 def on_disconnect():
     user = session.get("user")
@@ -238,12 +222,10 @@ def on_disconnect():
              {"user": user, "status": "offline"},
              broadcast=True)
 
-
 @socketio.on("join_room")
 def handle_join(data):
     room = data.get("room")
     join_room(room)
-
 
 @socketio.on("private_message")
 def private_message(data):
@@ -270,27 +252,25 @@ def private_message(data):
           "status": status},
          room=room)
 
+@socketio.on("typing")
+def typing(data):
+    sender = session.get("user")
+    receiver = data.get("to")
+
+    if not sender or not receiver:
+        return
+
+    room = "_".join(sorted([sender, receiver]))
+    emit("typing", {"from": sender}, room=room)
+
 @socketio.on("seen")
 def mark_seen(data):
     sender = data.get("sender")
     receiver = session.get("user")
 
-    @socketio.on("typing")
-def typing(data):
-    sender = session.get("user")
-    receiver = data.get("to")
+    if not sender or not receiver:
+        return
 
-    room = "_".join(sorted([sender, receiver]))
-    emit("typing", {"from": sender}, room=room)
- 
-@socketio.on("delete_message")
-def delete_message(data):
-    text = data.get("text")
-    sender = session.get("user")
-
-    c.execute("DELETE FROM messages WHERE sender=? AND text=?",(sender,text))
-    db.commit()
-    
     c.execute("""
         UPDATE messages
         SET status='seen'
@@ -299,31 +279,36 @@ def delete_message(data):
     db.commit()
 
     room = "_".join(sorted([sender, receiver]))
-
     emit("message_seen",
          {"sender": sender},
          room=room)
-    
+
 @socketio.on("delete_message")
 def delete_message(data):
     text = data.get("text")
     sender = session.get("user")
 
+    if not text or not sender:
+        return
+
     c.execute("DELETE FROM messages WHERE sender=? AND text=?",(sender,text))
     db.commit()
-    
+
 @socketio.on("voice_message")
 def voice_message(data):
     sender = session.get("user")
     receiver = data.get("to")
     audio = data.get("audio")
 
+    if not sender or not receiver:
+        return
+
     room = "_".join(sorted([sender, receiver]))
 
     emit("voice_message",
          {"from": sender, "audio": audio},
          room=room)
-    
+
 # ------------------ MAIN ------------------
 if __name__=="__main__":
     port=int(os.environ.get("PORT",10000))
