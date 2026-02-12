@@ -2,26 +2,23 @@
 {% block content %}
 
 <div class="chat-container">
-
   <div class="chat-header">
     <h3>{{ friend }}</h3>
     <span id="userStatus"></span>
   </div>
 
-  <div id="messages" class="messages">
+  <div id="messages" class="chat-box">
     {% for sender, text, status in messages %}
-      <div class="msg {{ 'me' if sender==session['user'] else 'other' }}" data-text="{{ text }}">
-        
-        <div class="bubble">
-          <span>{{ text }}</span>
-        </div>
-
+      <div class="msg {{ 'me' if sender==session['user'] else 'them' }}">
+        <span>{{ text }}</span>
         {% if sender==session['user'] %}
-          <small class="status">{{ status }}</small>
+          <small class="seen">{{ status }}</small>
+          <div class="reactions">
+            <button onclick="sendReaction('👍','{{ text }}')">👍</button>
+            <button onclick="sendReaction('❤️','{{ text }}')">❤️</button>
+            <button onclick="sendReaction('😂','{{ text }}')">😂</button>
+          </div>
         {% endif %}
-
-        <div class="reactions"></div>
-
       </div>
     {% endfor %}
   </div>
@@ -31,187 +28,54 @@
   <div class="chat-form">
     <input id="messageInput" placeholder="Type message...">
     <button onclick="sendMessage()">Send</button>
-    <button onclick="startRecording()">🎤</button>
   </div>
-
 </div>
 
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-
 <script>
 const socket = io();
 const friend = "{{ friend }}";
 const currentUser = "{{ session['user'] }}";
 const room = [friend, currentUser].sort().join("_");
-
 socket.emit("join_room", {room: room});
 
-// ================= SEND MESSAGE =================
+// SEND MESSAGE
 function sendMessage(){
-  const input = document.getElementById("messageInput");
-  const msg = input.value.trim();
+  const msg = document.getElementById("messageInput").value.trim();
   if(!msg) return;
-
-  socket.emit("private_message", {
-    to: friend,
-    msg: msg
-  });
-
-  input.value = "";
+  socket.emit("private_message", {to: friend, msg: msg});
+  document.getElementById("messageInput").value="";
 }
 
-// ================= RECEIVE MESSAGE =================
+// RECEIVE MESSAGE
 socket.on("private_message", data=>{
   const box = document.getElementById("messages");
-
   const div = document.createElement("div");
   div.classList.add("msg");
-  div.setAttribute("data-text", data.msg);
-
-  if(data.from === currentUser){
-    div.classList.add("me");
-    div.innerHTML = `
-      <div class="bubble">${data.msg}</div>
-      <small class="status">${data.status}</small>
-      <div class="reactions"></div>
-    `;
-  } else {
-    div.classList.add("other");
-    div.innerHTML = `
-      <div class="bubble">${data.msg}</div>
-      <div class="reactions"></div>
-    `;
-    socket.emit("seen",{sender:data.from});
-  }
-
+  div.classList.add(data.from===currentUser?'me':'them');
+  div.innerHTML = `<span>${data.msg}</span>` + (data.from===currentUser?`<small class="seen">${data.status}</small>`:'');
   box.appendChild(div);
   box.scrollTop = box.scrollHeight;
 });
 
-// ================= SEEN =================
-socket.on("message_seen", ()=>{
-  document.querySelectorAll(".status").forEach(s=>{
-    s.innerText="seen";
-  });
+// TYPING
+document.getElementById("messageInput").addEventListener("input", ()=>{
+  socket.emit("typing",{to: friend});
 });
-
-// ================= USER STATUS =================
-socket.on("user_status", data=>{
-  if(data.user === friend){
-    document.getElementById("userStatus").innerText = data.status;
-  }
-});
-
-// ================= TYPING =================
-const input = document.getElementById("messageInput");
-
-input.addEventListener("input", ()=>{
-  socket.emit("typing",{to:friend});
-});
-
 socket.on("typing", data=>{
   if(data.from===friend){
-    document.getElementById("typing").innerText = friend+" is typing...";
-    setTimeout(()=>{
-      document.getElementById("typing").innerText="";
-    },2000);
+    document.getElementById("typing").innerText = friend + " is typing...";
+    setTimeout(()=>{document.getElementById("typing").innerText = "";},2000);
   }
 });
 
-// ================= DELETE =================
-function deleteMessage(btn){
-  const msgDiv = btn.closest(".msg");
-  socket.emit("delete_message",{text: msgDiv.dataset.text});
-  msgDiv.remove();
+// REACTIONS
+function sendReaction(emoji,text){
+  socket.emit("reaction",{to: friend, emoji: emoji, text: text});
 }
-
-// ================= VOICE =================
-let mediaRecorder;
-let audioChunks=[];
-
-function startRecording(){
-  navigator.mediaDevices.getUserMedia({audio:true})
-  .then(stream=>{
-    mediaRecorder=new MediaRecorder(stream);
-    mediaRecorder.start();
-
-    mediaRecorder.ondataavailable=e=>{
-      audioChunks.push(e.data);
-    };
-
-    mediaRecorder.onstop=()=>{
-      const blob=new Blob(audioChunks);
-      const reader=new FileReader();
-      reader.onload=function(){
-        socket.emit("voice_message",{
-          to:friend,
-          audio:reader.result
-        });
-      };
-      reader.readAsDataURL(blob);
-      audioChunks=[];
-    };
-
-    setTimeout(()=>{
-      mediaRecorder.stop();
-    },3000);
-  });
-}
-
-socket.on("voice_message",data=>{
-  const box=document.getElementById("messages");
-  const div=document.createElement("div");
-  div.classList.add("msg","other");
-
-  div.innerHTML=`
-    <div class="bubble">
-      <audio controls src="${data.audio}"></audio>
-    </div>
-    <div class="reactions"></div>
-  `;
-
-  box.appendChild(div);
-  box.scrollTop=box.scrollHeight;
-});
-
-// ================= PROFESSIONAL REACTIONS =================
-
-// right click reaction menu
-document.addEventListener("contextmenu", function(e){
-  const msg = e.target.closest(".msg");
-  if(!msg) return;
-
-  e.preventDefault();
-
-  const emoji = prompt("React with emoji:");
-  if(!emoji) return;
-
-  const text = msg.dataset.text;
-
-  socket.emit("reaction",{
-    to: friend,
-    emoji: emoji,
-    text: text
-  });
-});
-
-// receive reaction
 socket.on("reaction", data=>{
-  const messages = document.querySelectorAll(".msg");
-
-  messages.forEach(msg=>{
-    if(msg.dataset.text === data.text){
-      const reactionsBox = msg.querySelector(".reactions");
-
-      const span = document.createElement("span");
-      span.classList.add("reaction-badge");
-      span.innerText = data.emoji;
-
-      reactionsBox.appendChild(span);
-    }
-  });
+  alert(`${data.from} reacted ${data.emoji} (${data.count})`);
 });
-
 </script>
 
 {% endblock %}
