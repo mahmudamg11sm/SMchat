@@ -1,31 +1,52 @@
-from datetime import datetime
-from app import db
+from flask import g
 
-class Reaction(db.Model):
-    __tablename__ = "reactions"
+class Message:
+    TABLE = "messages"
 
-    id = db.Column(db.Integer, primary_key=True)
+    def __init__(self, sender, receiver, text, type="text", media_url=None, status="sent", id=None):
+        self.sender = sender
+        self.receiver = receiver
+        self.text = text
+        self.type = type
+        self.media_url = media_url
+        self.status = status
+        self.id = id
 
-    message_id = db.Column(
-        db.Integer,
-        db.ForeignKey("messages.id"),
-        nullable=False
-    )
+    @staticmethod
+    def get_db():
+        return g.db
 
-    sender = db.Column(db.String(100), nullable=False)
-    receiver = db.Column(db.String(100), nullable=False)
+    @classmethod
+    def create(cls, sender, receiver, text, type="text", media_url=None, status="sent"):
+        db = cls.get_db()
+        c = db.cursor()
+        c.execute(f"INSERT INTO {cls.TABLE}(sender,receiver,text,type,media_url,status) VALUES(?,?,?,?,?,?)",
+                  (sender, receiver, text, type, media_url, status))
+        db.commit()
+        return cls(sender, receiver, text, type, media_url, status, c.lastrowid)
 
-    emoji = db.Column(db.String(10), nullable=False)
+    @classmethod
+    def get_conversation(cls, user1, user2):
+        db = cls.get_db()
+        c = db.cursor()
+        c.execute(f"""
+            SELECT * FROM {cls.TABLE}
+            WHERE (sender=? AND receiver=?) OR (sender=? AND receiver=?)
+            ORDER BY id ASC
+        """, (user1, user2, user2, user1))
+        return [cls(row["sender"], row["receiver"], row["text"], row["type"], row["media_url"], row["status"], row["id"])
+                for row in c.fetchall()]
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    @classmethod
+    def mark_seen(cls, sender, receiver):
+        db = cls.get_db()
+        c = db.cursor()
+        c.execute(f"UPDATE {cls.TABLE} SET status='seen' WHERE sender=? AND receiver=?", (sender, receiver))
+        db.commit()
 
-    __table_args__ = (
-        db.UniqueConstraint(
-            "message_id",
-            "sender",
-            name="unique_user_reaction"
-        ),
-    )
-
-    def __repr__(self):
-        return f"<Reaction {self.emoji} by {self.sender}>"
+    @classmethod
+    def delete(cls, sender, text):
+        db = cls.get_db()
+        c = db.cursor()
+        c.execute(f"DELETE FROM {cls.TABLE} WHERE sender=? AND text=?", (sender, text))
+        db.commit()
