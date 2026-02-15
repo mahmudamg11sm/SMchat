@@ -1,6 +1,5 @@
 {% extends "layout/base.html" %}
 {% block content %}
-
 <div class="chat-container">
   <div class="chat-header">
     <h3>{{ friend }}</h3>
@@ -9,17 +8,10 @@
 
   <div id="messages" class="chat-box">
     {% for sender, text, status in messages %}
-      <div class="msg {{ 'me' if sender==session['user'] else 'them' }}">
-        <span>{{ text }}</span>
-        {% if sender==session['user'] %}
-          <small class="seen">{{ status }}</small>
-          <div class="reactions">
-            <button onclick="sendReaction('👍','{{ text }}')">👍</button>
-            <button onclick="sendReaction('❤️','{{ text }}')">❤️</button>
-            <button onclick="sendReaction('😂','{{ text }}')">😂</button>
-          </div>
-        {% endif %}
-      </div>
+    <div class="msg {{ 'me' if sender==session['user'] else 'them' }}">
+      <span>{{ text }}</span>
+      {% if sender==session['user'] %}<small class="seen">{{ status }}</small>{% endif %}
+    </div>
     {% endfor %}
   </div>
 
@@ -28,54 +20,10 @@
   <div class="chat-form">
     <input id="messageInput" placeholder="Type message...">
     <button onclick="sendMessage()">Send</button>
+    <button onclick="startRecording()">🎤</button>
   </div>
 </div>
 
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-<script>
-const socket = io();
-const friend = "{{ friend }}";
-const currentUser = "{{ session['user'] }}";
-const room = [friend, currentUser].sort().join("_");
-socket.emit("join_room", {room: room});
-
-// SEND MESSAGE
-function sendMessage(){
-  const msg = document.getElementById("messageInput").value.trim();
-  if(!msg) return;
-  socket.emit("private_message", {to: friend, msg: msg});
-  document.getElementById("messageInput").value="";
-}
-
-// RECEIVE MESSAGE
-socket.on("private_message", data=>{
-  const box = document.getElementById("messages");
-  const div = document.createElement("div");
-  div.classList.add("msg");
-  div.classList.add(data.from===currentUser?'me':'them');
-  div.innerHTML = `<span>${data.msg}</span>` + (data.from===currentUser?`<small class="seen">${data.status}</small>`:'');
-  box.appendChild(div);
-  box.scrollTop = box.scrollHeight;
-});
-
-// TYPING
-document.getElementById("messageInput").addEventListener("input", ()=>{
-  socket.emit("typing",{to: friend});
-});
-socket.on("typing", data=>{
-  if(data.from===friend){
-    document.getElementById("typing").innerText = friend + " is typing...";
-    setTimeout(()=>{document.getElementById("typing").innerText = "";},2000);
-  }
-});
-
-// REACTIONS
-function sendReaction(emoji,text){
-  socket.emit("reaction",{to: friend, emoji: emoji, text: text});
-}
-socket.on("reaction", data=>{
-  alert(`${data.from} reacted ${data.emoji} (${data.count})`);
-});
-</script>
-
+<script src="/static/js/chat.js"></script>
 {% endblock %}
