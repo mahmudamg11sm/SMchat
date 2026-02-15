@@ -1,24 +1,19 @@
 {% extends "layout/base.html" %}
 {% block content %}
-
 <div class="public-container">
-  <h2>Public Posts</h2>
-
-  {% for user, content in posts %}
-    <div class="post" style="border:1px solid gold; padding:10px; margin-bottom:10px; background:#222;">
-      <strong>{{ user }}</strong>:
-      <p>{{ content }}</p>
-    </div>
-  {% else %}
-    <p>No public posts yet.</p>
-  {% endfor %}
-
-  {% if session.get('user') %}
-    <form method="POST" action="/add-post">
-      <textarea name="content" rows="3" style="width:100%;" placeholder="Write something public..."></textarea><br>
-      <button type="submit">Post</button>
-    </form>
-  {% endif %}
+<h3>Public Posts</h3>
+{% for post in posts %}
+<div class="post" data-id="{{ post.id }}">
+  <strong>{{ post.user }}</strong>: {{ post.content }}
+  <div class="reactions">
+    <button onclick="sendReaction('👍', {{ post.id }})">👍</button>
+    <button onclick="sendReaction('❤️', {{ post.id }})">❤️</button>
+    <span class="reaction-count"></span>
+  </div>
+</div>
+{% endfor %}
 </div>
 
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<script src="/static/js/reactions.js"></script>
 {% endblock %}
